@@ -5,7 +5,7 @@ The `polta` module combines `polars` data transformation with `deltalake` table 
 ## Installation
 Currently, `polta` can be accessed only by cloning this repository, building the package via `poetry`, and importing the wheel into your project.
 
-Future state will include an official `PyPi` package.
+A future state will include an official `PyPi` package.
 
 ## Usage
 
@@ -15,10 +15,17 @@ Below is an example instantiation of a `PoltaTable`.
 
 ```python
 from deltalake import Field, Schema
+from polars.datatypes import (
+  Boolean,
+  DataType,
+  Int32,
+  String
+)
 
 from polta.table import PoltaTable
 
 
+# Using the deltalake schema
 sample_table: PoltaTable = PoltaTable(
   catalog_name='tests',
   schema_name='testing_data',
@@ -30,9 +37,24 @@ sample_table: PoltaTable = PoltaTable(
   ]),
   primary_keys=['id', 'name']
 )
+
+# Using the polars schema
+sample_table: PoltaTable  = PoltaTable(
+  catalog_name='tests',
+  schema_name='testing_data',
+  table_name='test_table',
+  raw_schema={
+    'id': Int32,
+    'name': String,
+   'active_ind': Boolean
+  },
+  primary_keys=['id', 'name']
+)
 ```
 
-For the `raw_schema` field, you can provide either a `deltalake` schema, like what is provided, or a `dict[str, DataType]` object, where `DataType` is a `polars` data type object.
+For the `raw_schema` field, you can provide either a `deltalake` schema or a `dict[str, DataType]` object, where `DataType` is a `polars` data type object. Either way, you will have access to both through the `schema_deltalake` and `schema_polars` fields, respectively.
+
+Behind the scenes, table management is automatic. The table will be created if/when it needs to exist, and it will be saved according to the catalog-schema-table fields in the table definition. There is a default metastore directory location that all tables access, and that is usually `CWD / metastore`.
 
 From here, you will be able to do the following commands and more:
 1. Retrieve the table as a DataFrame with `sample_table.get()`.
