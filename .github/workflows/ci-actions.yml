@@ -30,4 +30,6 @@ jobs:
           POETRY_VIRTUALENVS_CREATE: false
       - name: Run PyTest
         run: |
-          cd .. && poetry run pytest tests/ -vv -s
+          ls
+          cd ../
+          && poetry run pytest tests/ -vv -s
