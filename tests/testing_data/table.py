@@ -17,7 +17,14 @@ class TestingData:
       Field('active_ind', 'boolean')
     ]),
     primary_keys=['id', 'name'],
-    metastore_directory=path.join(getcwd(), 'tests', 'testing_data', 'test_metastore')
+    partition_keys=['id'],
+    metastore_directory=path.join(getcwd(), 'tests', 'testing_data', 'test_metastore'),
+    delta_configuration={
+      'delta.enableChangeDataFeed': 'true'
+    },
+    delta_metadata={
+      'test-table': 'true'
+    }
   )
 
   expected_merge_predicate: str = 's.id = t.id AND s.name = t.name'

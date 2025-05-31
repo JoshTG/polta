@@ -28,8 +28,12 @@ class PoltaTable:
     raw_schema (Union[Schema, dict[str, DataType]]): a deltalake or polars schema
     
   Optional Args:
-    metastore_directory (str): The absolute path to the metastore dir (default CWD + 'metastore')
+    description (str): the table description
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
+    partition_keys (list[str]): if applicable, the keys by which to partition the Delta Table
+    delta_configuration (dict[str, str]): the configuration mapping for the Delta Table
+    delta_metadata (dict[str, str]): the metadata for the Delta Table
+    metastore_directory (str): the absolute path to the metastore dir (default CWD + 'metastore')
   
   Initialized fields:
     tables_directory (str): the absolute path to the top-level tables directory
@@ -50,7 +54,6 @@ class PoltaTable:
   primary_keys: list[str] = field(default_factory=lambda: [])
   partition_keys: list[str] = field(default_factory=lambda: [])
   delta_configuration: dict[str, str] = field(default_factory=lambda: {})
-  delta_storage_options: dict[str, str] = field(default_factory=lambda: {})
   delta_metadata: dict[str, str] = field(default_factory=lambda: {})
   metastore_directory: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
 
@@ -105,13 +108,12 @@ class PoltaTable:
       makedirs(self.table_path, exist_ok=True)
       DeltaTable.create(
         table_uri=self.table_path,
-        schema=self.schema,
-        name=self.table_name,
-        partition_by=self.partition_keys or None,
-        description=self.description or None,
-        configuration=self.delta_configuration or None,
-        storage_options=self.delta_storage_options or None,
-        custom_metadata=self.delta_metadata or None
+        schema=self.schema_deltalake,
+        name=self.name,
+        partition_by=self.partition_keys,
+        description=self.description,
+        configuration=self.delta_configuration,
+        custom_metadata=self.delta_metadata
       )
     return DeltaTable(self.table_path)
 
