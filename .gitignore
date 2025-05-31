@@ -1,0 +1,4 @@
+.venv
+tests/testing_data/test_metastore/
+.pytest_cache
+__pycache__
