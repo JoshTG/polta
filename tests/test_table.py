@@ -79,9 +79,9 @@ class TestTable(TestCase):
     last_modified_record: dict[str, Any] = self.td.table.get_last_modified_record()
     now: datetime = datetime.now()
     assert isinstance(last_modified_record, dict)
-    assert last_modified_record['catalog'] == self.td.table.catalog_name
-    assert last_modified_record['schema'] == self.td.table.schema_name
-    assert last_modified_record['table'] == self.td.table.table_name
+    assert last_modified_record['domain'] == self.td.table.domain
+    assert last_modified_record['quality'] == self.td.table.quality.value
+    assert last_modified_record['table'] == self.td.table.name
     assert last_modified_record['path'] == self.td.table.table_path
     assert 'last_modified_datetime' in last_modified_record
     last_modified_datetime: datetime = last_modified_record['last_modified_datetime']

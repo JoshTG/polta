@@ -2,14 +2,15 @@ from deltalake import Field, Schema
 from os import getcwd, path
 from typing import Any
 
+from polta.enums import TableQuality
 from polta.table import PoltaTable
 
 
 class TestingData:
   table: PoltaTable = PoltaTable(
-    catalog_name='tests',
-    schema_name='testing_data',
-    table_name='test_table',
+    domain='tests',
+    quality=TableQuality.CANONICAL,
+    name='test_table',
     raw_schema=Schema([
       Field('id', 'integer'),
       Field('name', 'string'),

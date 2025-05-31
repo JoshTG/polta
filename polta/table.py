@@ -8,6 +8,7 @@ from polars.datatypes import DataType
 from shutil import rmtree
 from typing import Tuple, Union
 
+from polta.enums import TableQuality
 from polta.exceptions import (
   PoltaDataFormatNotRecognized,
   RawSchemaNotRecognized
@@ -21,9 +22,9 @@ class PoltaTable:
   """Class to store all applicable information for a Polars + Delta Table
   
   Positional Args:
-    catalog_name (str): the name of the catalog
-    schema_name (str): the name of the schema
-    table_name (str): the name of the table
+    domain (str): the kind of data this table contains
+    quality (TableQuality): the quality of the data
+    name (str): the name of the table
     raw_schema (Union[Schema, dict[str, DataType]]): a deltalake or polars schema
     
   Optional Args:
@@ -40,9 +41,9 @@ class PoltaTable:
     schema_deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
   """
-  catalog_name: str
-  schema_name: str
-  table_name: str
+  domain: str
+  quality: TableQuality
+  name: str
   raw_schema: Union[Schema, dict[str, DataType]]
   
   description: str = field(default_factory=lambda: '')
@@ -71,16 +72,16 @@ class PoltaTable:
     self.volumes_directory: str = path.join(self.metastore_directory, 'volumes')
     self.table_path: str = path.join(
       self.tables_directory,
-      self.catalog_name,
-      self.schema_name,
-      self.table_name
+      self.domain,
+      self.quality.value,
+      self.name
     )
     self.state_file_directory: str = path.join(
       self.volumes_directory,
       'state',
-      self.catalog_name,
-      self.schema_name,
-      self.table_name            
+      self.domain,
+      self.quality.value,
+      self.name            
     )
     self.state_file_path: str = path.join(
       self.state_file_directory,
@@ -330,9 +331,9 @@ class PoltaTable:
       last_modified_record (dict[str, any]): the metadata of the table's last modified timestamp
     """
     return {
-      'catalog': self.catalog_name,
-      'schema': self.schema_name,
-      'table': self.table_name,
+      'domain': self.domain,
+      'quality': self.quality.value,
+      'table': self.name,
       'path': self.table_path,
       'last_modified_datetime': self.get_last_modified_datetime()
     }
