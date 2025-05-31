@@ -155,9 +155,8 @@ class TestTable(TestCase):
     assert active_ind_df_2.shape[0] == 1
 
   def test_get_as_delta_table(self) -> None:
-    # Assert Delta Table retrieval works
-    delta_table: DeltaTable = self.td.table.get_as_delta_table()
-    assert isinstance(delta_table, DeltaTable)
+    # Assert Delta Table initialization works
+    assert isinstance(self.td.table.delta_table, DeltaTable)
 
   def test_drop(self) -> None:
     # Ensure table exists first
