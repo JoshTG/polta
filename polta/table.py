@@ -44,17 +44,26 @@ class PoltaTable:
   schema_name: str
   table_name: str
   raw_schema: Union[Schema, dict[str, DataType]]
-  metastore_directory: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
+  
+  description: str = field(default_factory=lambda: '')
   primary_keys: list[str] = field(default_factory=lambda: [])
+  partition_keys: list[str] = field(default_factory=lambda: [])
+  delta_configuration: dict[str, str] = field(default_factory=lambda: {})
+  delta_storage_options: dict[str, str] = field(default_factory=lambda: {})
+  delta_metadata: dict[str, str] = field(default_factory=lambda: {})
+  metastore_directory: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
 
   tables_directory: str = field(init=False)
   volumes_directory: str = field(init=False)
   table_path: str = field(init=False)
   state_file_directory: str = field(init=False)
   state_file_path: str = field(init=False)
+
+  delta_table: DeltaTable = field(init=False)
   schema_polars: dict[str, DataType] = field(init=False)
   schema_deltalake: Schema = field(init=False)
   columns: list[str] = field(init=False)
+
   merge_predicate: str = field(init=False)
 
   def __post_init__(self) -> None:
@@ -79,28 +88,31 @@ class PoltaTable:
     )
     self.schema_deltalake, self.schema_polars = self.build_schemas_from_raw(self.raw_schema)
     self.columns: list[str] = list(self.schema_polars.keys())
+    self.delta_table: DeltaTable = self.initialize_delta_table()
 
     if self.primary_keys:
       self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
 
-  @staticmethod
-  def create_if_not_exists(table_path: str, schema: Schema) -> None:
+  def initialize_delta_table(self) -> DeltaTable:
     """Creates a Delta Table if it does not exist
-
-    Args:
-        table_path (str): the path of the Delta Table
-        schema (Schema): the table schema, in case the Delta Table needs to be created
+    
+    Returns:
+      delta_table (DeltaTable): the resulting Delta Table
     """
-    if not isinstance(table_path, str):
-      raise TypeError('Error: table_path must be of type <str>')
-    if not isinstance(schema, Schema):
-      raise TypeError('Error: schema must be of type <Schema>')
-
     # If the Delta Table does not exist yet, create it with the expected schema             
-    if not DeltaTable.is_deltatable(table_path):
-      makedirs(table_path, exist_ok=True)
-
-    DeltaTable.create(table_path, schema)
+    if not DeltaTable.is_deltatable(self.table_path):
+      makedirs(self.table_path, exist_ok=True)
+      DeltaTable.create(
+        table_uri=self.table_path,
+        schema=self.schema,
+        name=self.table_name,
+        partition_by=self.partition_keys or None,
+        description=self.description or None,
+        configuration=self.delta_configuration or None,
+        storage_options=self.delta_storage_options or None,
+        custom_metadata=self.delta_metadata or None
+      )
+    return DeltaTable(self.table_path)
 
   @staticmethod
   def build_schemas_from_raw(raw_schema: Union[Schema, dict[str, DataType]]) -> \
@@ -158,15 +170,6 @@ class PoltaTable:
     if path.exists(self.table_path) and DeltaTable.is_deltatable(self.table_path):
       rmtree(self.table_path)
     
-  def get_as_delta_table(self) -> DeltaTable:
-    """Retrieves the DeltaTable object for the Polta Table
-    
-    Returns:
-      delta_table (DeltaTable): the resulting Delta Table
-    """
-    self.create_if_not_exists(self.table_path, self.schema_deltalake)
-    return DeltaTable(self.table_path)
-
   def get(self, filter_conditions: dict = {}, partition_by: list[str] = [], order_by: list[str] = [],
           order_by_descending: bool = True, select: list[str] = [], sort_by: list[str] = [], limit: int = 0,
           unique: bool = False) -> DataFrame:
@@ -207,10 +210,6 @@ class PoltaTable:
       raise ValueError('Error: all values in select must be of type <str>')
     if not all(isinstance(c, str) for c in sort_by):
       raise ValueError('Error: all values in sort_by must be of type <str>')
-
-    # Create the Delta Table if it does not exist
-    if not path.exists(self.table_path):
-      self.create_if_not_exists(self.table_path, self.schema_deltalake)
         
     # Retrieve Delta Table as a Polars DataFrame
     df: DataFrame = read_delta(self.table_path)
