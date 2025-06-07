@@ -7,8 +7,8 @@ from polta.table import PoltaTable
 
 
 @dataclass
-class PoltaPipeline:
-  """Executes data transformation across layers
+class PoltaPipe:
+  """Executes data transformation across two layers
 
   The main methods that should be overriden:
     1. load_dfs() -> populate self.dfs with dependent DataFrames

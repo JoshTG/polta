@@ -2,13 +2,13 @@ from polars import col, DataFrame
 from typing import Any
 from unittest import TestCase
 
-from polta.pipeline import PoltaPipeline
-from tests.testing_data.pipeline import TestingData, TestPipeline
+from polta.pipe import PoltaPipe
+from tests.testing_data.pipe import TestingData, TestPipe
 
 
-class TestPipeline(TestCase):
+class TestPipe(TestCase):
   td: TestingData = TestingData()
-  pipeline: PoltaPipeline = TestPipeline()
+  pipeline: PoltaPipe = TestPipe()
   df_1: DataFrame = DataFrame(td.df_1_rows)
   df_2: DataFrame = DataFrame(td.df_2_rows)
 

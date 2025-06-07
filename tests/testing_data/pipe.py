@@ -2,7 +2,7 @@ from polars import DataFrame
 from typing import Any
 
 from polta.enums import LoadLogic
-from polta.pipeline import PoltaPipeline
+from polta.pipe import PoltaPipe
 from tests.testing_data.table import TestingData as ttd
 
 
@@ -28,7 +28,7 @@ class TestingData:
   sdf_test_id: int = 1
   sdf_test_active_ind: bool = True
 
-class TestPipeline(PoltaPipeline):
+class TestPipe(PoltaPipe):
   def __init__(self) -> None:
     super().__init__(
       table=ttd.table,
