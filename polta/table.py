@@ -51,6 +51,7 @@ class PoltaTable:
   tables_directory: str = field(init=False)
   volumes_directory: str = field(init=False)
   table_path: str = field(init=False)
+  ingestion_zone_path: str = field(init=False)
   state_file_directory: str = field(init=False)
   state_file_path: str = field(init=False)
   schema_polars: dict[str, DataType] = field(init=False)
@@ -65,6 +66,12 @@ class PoltaTable:
       self.tables_directory,
       self.domain,
       self.quality.value,
+      self.name
+    )
+    self.ingestion_zone_path: str = path.join(
+      self.volumes_directory,
+      'ingestion',
+      self.domain,
       self.name
     )
     self.state_file_directory: str = path.join(
@@ -83,6 +90,8 @@ class PoltaTable:
 
     if self.primary_keys:
       self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
+    if self.quality.value == TableQuality.RAW.value:
+      self._build_ingestion_zone_if_not_exists()
 
   @staticmethod
   def create_if_not_exists(table_path: str, schema: Schema) -> None:
@@ -338,3 +347,9 @@ class PoltaTable:
       'path': self.table_path,
       'last_modified_datetime': self.get_last_modified_datetime()
     }
+
+  def _build_ingestion_zone_if_not_exists(self) -> None:
+    """Builds an empty directory for ingesting files"""
+    if not path.exists(self.ingestion_zone_path):
+      makedirs(self.ingestion_zone_path, exist_ok=True)
+      print(f'Ingestion zone created: {self.ingestion_zone_path}')
