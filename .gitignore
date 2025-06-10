@@ -1,4 +1,7 @@
 .venv
-tests/testing_data/test_metastore/
+.vscode
+**/test_metastore/tables/
+**/test_metastore/volumes/state/
 .pytest_cache
 __pycache__
+*scratch.ipynb

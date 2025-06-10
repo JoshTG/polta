@@ -27,6 +27,6 @@ class TestingData:
     'name': String,
     'active_ind': Boolean,
     'tags': List(String),
-    'active_ts': Datetime(time_zone='America/New_York')
+    'active_ts': Datetime
   }
   bad_polars_fields: list[str] = ['stirng', 'spam', 'eggs']

@@ -3,12 +3,12 @@ from typing import Any
 from unittest import TestCase
 
 from polta.pipe import PoltaPipe
-from tests.testing_data.pipe import TestingData, TestPipe
+from tests.testing_data.pipe import TestingData, PipeTest
 
 
 class TestPipe(TestCase):
   td: TestingData = TestingData()
-  pipeline: PoltaPipe = TestPipe()
+  pipeline: PoltaPipe = PipeTest()
   df_1: DataFrame = DataFrame(td.df_1_rows)
   df_2: DataFrame = DataFrame(td.df_2_rows)
 

@@ -1,8 +1,16 @@
-from dataclasses import dataclass, field
-from polars import DataFrame
+import polars as pl
 
-from polta.enums import LoadLogic
-from polta.exceptions import EmptyPipeline, LoadLogicNotRecognized
+from dataclasses import dataclass, field
+from datetime import datetime
+from polars import DataFrame
+from uuid import uuid4
+
+from polta.enums import LoadLogic, TableQuality
+from polta.exceptions import (
+  EmptyPipeline,
+  LoadLogicNotRecognized,
+  TableQualityNotRecognized
+)
 from polta.table import PoltaTable
 
 
@@ -34,11 +42,21 @@ class PoltaPipe:
     self.dfs: dict[str, DataFrame] = self.load_dfs()
 
   def execute(self) -> None:
-    self.load_dfs()
+    if self.table.quality.value == TableQuality.RAW.value:
+      self.dfs['raw'] = self.ingest()
     df: DataFrame = self.transform()
+    df: DataFrame = self.add_metadata_columns(df)
     df: DataFrame = self.conform_schema(df)
     self.save(df)
   
+  def ingest(self) -> DataFrame:
+    """Ingests the raw data into the 'raw' DataFrame
+    
+    Returns:
+      df (DataFrame): the ingested DataFrame
+    """
+    # TODO
+
   def load_dfs(self) -> dict[str, DataFrame]:
     """Loads dependent DataFrames
     
@@ -58,6 +76,41 @@ class PoltaPipe:
       df (DataFrame): the transformed DataFrame
     """
     return DataFrame([], self.table.schema_polars)
+
+  def add_metadata_columns(self, df: DataFrame) -> DataFrame:
+    """Adds relevant metadata columns to the DataFrame before loading
+
+    This method presumes the DataFrame carries its original metadata
+    
+    Args:
+      df (DataFrame): the DataFrame before metadata columns
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
+    id: str = str(uuid4())
+    now: datetime = datetime.now()
+    
+    if self.table.quality.value == TableQuality.RAW.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_raw_id'),
+        pl.lit(now).alias('_ingested_ts')
+      ])
+    elif self.table.quality.value == TableQuality.CONFORMED.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_conformed_id'),
+        pl.lit(now).alias('_conformed_ts')
+      ])
+    elif self.table.quality.value == TableQuality.CANONICAL.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_canonicalized_id'),
+        pl.lit(now).alias('_created_ts'),
+        pl.lit(now).alias('_modified_ts')
+      ])
+    else:
+      raise TableQualityNotRecognized(self.table.quality.value)
+
+    return df
   
   def conform_schema(self, df: DataFrame) -> DataFrame:
     """Conforms the DataFrame to the expected schema
@@ -68,6 +121,7 @@ class PoltaPipe:
     Returns:
       df (DataFrame): the conformed DataFrame
     """
+    df: DataFrame = self.add_metadata_columns(df)
     return df.select(*self.table.schema_polars.keys())
 
   def save(self, df: DataFrame) -> None:
