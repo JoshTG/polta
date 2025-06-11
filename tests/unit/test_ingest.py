@@ -1,12 +1,15 @@
 from polars import DataFrame
 from unittest import TestCase
 
-from tests.testing_tables.raw.activity import activity_ingest
+from polta.ingest import PoltaIngest
+from tests.testing_tables.raw.activity import activity_pipe
 from tests.testing_tables.conformed.name import name_ingest
 
 
 class TestIngest(TestCase):
   def test_simple_ingest(self) -> None:
+    activity_ingest: PoltaIngest = activity_pipe.ingest_logic
+    activity_ingest.table.truncate()
     assert activity_ingest.simple_payload
     df: DataFrame = activity_ingest.ingest()
     assert isinstance(df, DataFrame)
@@ -20,6 +23,7 @@ class TestIngest(TestCase):
     assert len(df.columns) == 6
 
   def test_json_ingest(self) -> None:
+    name_ingest.table.truncate()
     assert not name_ingest.simple_payload
     df: DataFrame = name_ingest.ingest()
     assert isinstance(df, DataFrame)

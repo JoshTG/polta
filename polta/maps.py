@@ -51,7 +51,11 @@ class PoltaMaps:
     'conformed': [
       Field('_raw_id', 'string'),
       Field('_conformed_id', 'string'),
-      Field('_conformed_ts', 'timestamp')
+      Field('_conformed_ts', 'timestamp'),
+      Field('_ingested_ts', 'timestamp'),
+      Field('_file_path', 'string'),
+      Field('_file_name', 'string'),
+      Field('_file_mod_ts', 'timestamp')
     ],
     'canonical': [
       Field('_raw_id', 'string'),
@@ -104,6 +108,15 @@ class PoltaMaps:
 
   @staticmethod
   def polars_field_to_deltalake_field(column: str, data_type: plDataType) -> Field:
+    """Converts a polars field to a deltalake field
+    
+    Args:
+      column (str): the name of the column
+      data_type (DataType): polars DataType
+    
+    Returns:
+      field (Field): the resulting deltalake field
+    """
     try:
       if isinstance(data_type, Array):
         return Field(column, data_type.element_type)

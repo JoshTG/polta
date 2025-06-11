@@ -1,12 +1,11 @@
 import polars as pl
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import datetime
 from deltalake import Field, Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
-from typing import Union
 from uuid import uuid4
 
 from polta.enums import DirectoryType, RawFileType
@@ -19,6 +18,7 @@ from polta.udfs import file_path_to_json, file_path_to_payload
 
 @dataclass
 class PoltaIngest:
+  """Dataclass for ingesting files into the target table"""
   table: PoltaTable
   directory_type: DirectoryType
   raw_file_type: RawFileType
@@ -35,30 +35,22 @@ class PoltaIngest:
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
     self.payload_field: Field = Field('payload', 'string')
     self.simple_payload: bool = self.table.raw_schema.fields == [self.payload_field]
-    self.metadata_schema: Schema = PoltaMaps.QUALITY_TO_METADATA_COLUMNS_MAP['raw']
-    self.payload_schema: Schema = PoltaMaps.deltalake_schema_to_polars_schema(
+    self.metadata_schema: list[Field] = PoltaMaps.QUALITY_TO_METADATA_COLUMNS_MAP['raw']
+    self.payload_schema: dict[str, DataType] = PoltaMaps.deltalake_schema_to_polars_schema(
       schema=Schema(self.metadata_schema + [self.payload_field])
     )
 
-  def ingest(self, start_date: Union[date, None] = None,
-             end_date: Union[date, None] = None) -> DataFrame:
-    file_paths: list[str] = self._get_file_paths(start_date, end_date)
+  def ingest(self) -> DataFrame:
+    """Ingests new files into the target table"""
+    file_paths: list[str] = self._get_file_paths()
     metadata: list[RawMetadata] = [self._get_file_metadata(p) for p in file_paths]
     df: DataFrame = DataFrame(metadata, schema=self.payload_schema)
-
-    if self.track_history:
-      df = self._filter_by_history(df)
-
+    df = self._filter_by_history(df)
     return self._ingest_files(df)
 
-  def _get_file_paths(self, start_date: Union[date, None] = None,
-                      end_date: Union[date, None] = None) -> list[str]:
+  def _get_file_paths(self) -> list[str]:
     """Retrieves a list of file paths based on ingestion parameters
-    
-    Args:
-      start_date (Union[date, None]): if applicable, the start date for ingestion
-      end_date (Union[date, None]): if applicable, the end date for ingestion
-    
+        
     Returns:
       file_paths (list[str]): the resulting applicable file paths
     """
@@ -69,9 +61,6 @@ class PoltaIngest:
       ]
     elif self.directory_type.value == DirectoryType.DATED.value:
       for date_str in listdir(self.table.ingestion_zone_path):
-        date_obj: date = datetime.strptime(date_str[:10], '%Y-%m-%d').date()
-        if date_obj < start_date or date_obj > end_date:
-          continue
         return [
           path.join(self.table.ingestion_zone_path, date_str, f)
           for f in listdir(self.table.ingestion_zone_path)
@@ -79,19 +68,41 @@ class PoltaIngest:
     else:
       raise DirectoryTypeNotRecognized(self.directory_type)
 
-  def _filter_by_history(self, file_paths: list[RawMetadata]) -> list[str]:
-    paths: DataFrame = DataFrame(file_paths, schema=self.metadata_schema)
-    hx: DataFrame = self.table.get(select=['_file_path', '_file_mod_ts'], unique=True)
+  def _filter_by_history(self, file_paths: list[RawMetadata]) -> DataFrame:
+    """Removes files from ingestion attempt that have already been ingested
+    
+    Args:
+      file_paths (list[RawMetadata]): the file paths to ingest
+    
+    Returns:
+      file_paths (DataFrame): the resulting DataFrame object with the filtered paths
+    """
+    paths: DataFrame = DataFrame(file_paths, schema=self.payload_schema)
+    hx: DataFrame = (self.table
+      .get(select=['_file_path', '_file_mod_ts'], unique=True)
+      .group_by('_file_path')
+      .agg(pl.col('_file_mod_ts').max())
+    )
 
     return (paths
-      .join(
-        other=hx,
-        on=[pl.sql_expr('paths._file_path = hx._file_path AND paths._file_mod_ts <= hx._file_mod_ts')],
-        how='anti'
+      .with_columns([pl.col('_file_mod_ts').dt.replace_time_zone('utc').alias('_file_mod_ts')])
+      .join(hx, '_file_path', 'left')
+      .filter(
+        (pl.col('_file_mod_ts') > pl.col('_file_mod_ts_right')) |
+        (pl.col('_file_mod_ts_right').is_null())
       )
+      .drop('_file_mod_ts_right')
     )
 
   def _ingest_files(self, df: DataFrame) -> DataFrame:
+    """Ingests files in the DataFrame according to file type / desired output
+    
+    Args:
+      df (DataFrame): the files to load
+    
+    Returns:
+      df (DataFrame): the ingested files
+    """
     if self.simple_payload:
       return self._run_simple_load(df)
     elif self.raw_file_type.value == RawFileType.JSON.value:
@@ -100,6 +111,14 @@ class PoltaIngest:
       raise NotImplementedError(self.raw_file_type)
 
   def _get_file_metadata(self, file_path: str) -> RawMetadata:
+    """Retrieves file metadata from a file
+
+    Args:
+      file_path (str): the path to the file
+    
+    Returns:
+      raw_metadata (RawMetadata): the resulting raw metadata of the file
+    """
     if not path.exists(file_path):
       raise FileNotFoundError()
 
@@ -112,6 +131,14 @@ class PoltaIngest:
     )
 
   def _run_simple_load(self, df: DataFrame) -> DataFrame:
+    """Retrieves the payload from the file path for each row
+    
+    Args:
+      df (DataFrame): the data with metadata to load
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
     return (df
       .with_columns([
         pl.col('_file_path')
@@ -121,10 +148,21 @@ class PoltaIngest:
     )
 
   def _run_json_load(self, df: DataFrame) -> DataFrame:
+    """Retrieves the payload values from the file path for each row
+    
+    Args:
+      df (DataFrame): the data with metadata to load
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
     df: DataFrame = (df
       .with_columns([
         pl.col('_file_path')
-          .map_elements(file_path_to_json, return_dtype=List(Struct(self.raw_polars_schema)))
+          .map_elements(
+            function=file_path_to_json,
+            return_dtype=List(Struct(self.raw_polars_schema))
+          )
           .alias('payload')
       ])
       .explode('payload')

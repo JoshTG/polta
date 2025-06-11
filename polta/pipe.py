@@ -3,14 +3,16 @@ import polars as pl
 from dataclasses import dataclass, field
 from datetime import datetime
 from polars import DataFrame
+from typing import Union
 from uuid import uuid4
 
 from polta.enums import LoadLogic, TableQuality
 from polta.exceptions import (
-  EmptyPipeline,
+  EmptyPipe,
   LoadLogicNotRecognized,
   TableQualityNotRecognized
 )
+from polta.ingest import PoltaIngest
 from polta.table import PoltaTable
 
 
@@ -35,28 +37,24 @@ class PoltaPipe:
   """
   table: PoltaTable
   load_logic: LoadLogic
+  ingest_logic: Union[PoltaIngest, None] = field(default_factory=lambda: None)
   strict: bool = field(default_factory=lambda: False)
   dfs: dict[str, DataFrame] = field(init=False)
 
   def __post_init__(self) -> None:
-    self.dfs: dict[str, DataFrame] = self.load_dfs()
+    self.dfs: dict[str, DataFrame] = {}
 
-  def execute(self) -> None:
-    if self.table.quality.value == TableQuality.RAW.value:
-      self.dfs['raw'] = self.ingest()
+  def execute(self) -> int:
+    """Executes the pipe"""
+    self.dfs: dict[str, DataFrame] = self.load_dfs()
+    if self.ingest_logic:
+      self.dfs['raw'] = self.ingest_logic.ingest()
     df: DataFrame = self.transform()
     df: DataFrame = self.add_metadata_columns(df)
     df: DataFrame = self.conform_schema(df)
     self.save(df)
+    return df.shape[0]
   
-  def ingest(self) -> DataFrame:
-    """Ingests the raw data into the 'raw' DataFrame
-    
-    Returns:
-      df (DataFrame): the ingested DataFrame
-    """
-    # TODO
-
   def load_dfs(self) -> dict[str, DataFrame]:
     """Loads dependent DataFrames
     
@@ -75,6 +73,8 @@ class PoltaPipe:
     Returns:
       df (DataFrame): the transformed DataFrame
     """
+    if self.ingest_logic:
+      return self.dfs['raw']
     return DataFrame([], self.table.schema_polars)
 
   def add_metadata_columns(self, df: DataFrame) -> DataFrame:
@@ -134,7 +134,7 @@ class PoltaPipe:
 
     if df.is_empty():
       if self.strict:
-        raise EmptyPipeline()
+        raise EmptyPipe()
       return
 
     if self.load_logic.value == LoadLogic.APPEND.value:

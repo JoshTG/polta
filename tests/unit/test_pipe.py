@@ -32,6 +32,7 @@ class TestPipe(TestCase):
   
   def test_transform(self) -> None:
     # Assert transformation happens as expected
+    self.pipeline.dfs = self.pipeline.load_dfs()
     df: DataFrame = self.pipeline.transform()
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 3
@@ -42,6 +43,7 @@ class TestPipe(TestCase):
     self.pipeline.table.truncate()
 
     # Retrieve transformation result and saves result
+    self.pipeline.dfs = self.pipeline.load_dfs()
     df: DataFrame = self.pipeline.transform()
     self.pipeline.save(df)
 

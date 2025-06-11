@@ -1,8 +1,14 @@
 from deltalake import Field, Schema
 from os import getcwd, path
 
-from polta.enums import DirectoryType, RawFileType, TableQuality
+from polta.enums import (
+  DirectoryType,
+  LoadLogic,
+  RawFileType,
+  TableQuality
+)
 from polta.ingest import PoltaIngest
+from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 
 
@@ -14,11 +20,15 @@ activity_table: PoltaTable = PoltaTable(
     Field('payload', 'string')
   ]),
   primary_keys=['id'],
-  metastore_directory=path.join(getcwd(), 'tests', 'unit', 'testing_data', 'test_metastore')
+  metastore_directory=path.join(getcwd(), 'tests', 'testing_tables', 'test_metastore')
 )
 
-activity_ingest: PoltaIngest = PoltaIngest(
+activity_pipe: PoltaPipe = PoltaPipe(
   table=activity_table,
-  directory_type=DirectoryType.SHALLOW,
-  raw_file_type=RawFileType.JSON
+  load_logic=LoadLogic.APPEND,
+  ingest_logic=PoltaIngest(
+    table=activity_table,
+    directory_type=DirectoryType.SHALLOW,
+    raw_file_type=RawFileType.JSON
+  )
 )
