@@ -5,7 +5,7 @@ from polars import DataFrame
 from typing import Any
 from unittest import TestCase
 
-from tests.testing_data.table import TestingData
+from tests.unit.testing_data.table import TestingData
 
 
 class TestTable(TestCase):

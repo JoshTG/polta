@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from polta.exceptions import DataTypeNotRecognized
 from polta.maps import PoltaMaps
-from tests.testing_data.map import TestingData
+from tests.unit.testing_data.map import TestingData
 
 
 class TestMap(TestCase):

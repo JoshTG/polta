@@ -14,7 +14,7 @@ activity_table: PoltaTable = PoltaTable(
     Field('payload', 'string')
   ]),
   primary_keys=['id'],
-  metastore_directory=path.join(getcwd(), 'tests', 'testing_data', 'test_metastore')
+  metastore_directory=path.join(getcwd(), 'tests', 'unit', 'testing_data', 'test_metastore')
 )
 
 activity_ingest: PoltaIngest = PoltaIngest(

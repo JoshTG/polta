@@ -4,7 +4,7 @@ from typing import Any
 
 from polta.enums import LoadLogic
 from polta.pipe import PoltaPipe
-from tests.testing_data.table import TestingData as ttd
+from tests.unit.testing_data.table import TestingData as ttd
 
 
 

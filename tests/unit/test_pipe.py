@@ -3,7 +3,7 @@ from typing import Any
 from unittest import TestCase
 
 from polta.pipe import PoltaPipe
-from tests.testing_data.pipe import TestingData, PipeTest
+from tests.unit.testing_data.pipe import TestingData, PipeTest
 
 
 class TestPipe(TestCase):

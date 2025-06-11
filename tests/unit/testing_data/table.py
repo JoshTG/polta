@@ -20,7 +20,7 @@ class TestingData:
       Field('active_ind', 'boolean')
     ]),
     primary_keys=['id', 'name'],
-    metastore_directory=path.join(getcwd(), 'test', 'testing_data', 'test_metastore')
+    metastore_directory=path.join(getcwd(), 'tests', 'unit', 'testing_data', 'test_metastore')
   )
 
   expected_merge_predicate: str = 's.id = t.id AND s.name = t.name'

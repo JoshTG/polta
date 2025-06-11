@@ -15,7 +15,7 @@ name_table: PoltaTable = PoltaTable(
     Field('name', 'string')
   ]),
   primary_keys=['id'],
-  metastore_directory=path.join(getcwd(), 'tests', 'testing_data', 'test_metastore')
+  metastore_directory=path.join(getcwd(), 'tests', 'unit', 'testing_data', 'test_metastore')
 )
 
 name_ingest: PoltaIngest = PoltaIngest(
