@@ -36,3 +36,9 @@ class TableQualityNotRecognized(Exception):
   def __init__(self, quality: Any) -> None:
     self.message: str = f'Unrecognized table quality {quality}'
     super().__init__(self.message)
+
+class DomainDoesNotExist(Exception):
+  """Raise when a domain retrieval is attempted but it does not exist"""
+  def __init__(self, domain: str) -> None:
+    self.message: str = f'Unrecognized domain {domain}'
+    super().__init__(self.message)
