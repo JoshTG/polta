@@ -1,8 +1,9 @@
 from deltalake import Field, Schema
-from os import getcwd, path
 
 from polta.enums import TableQuality
 from polta.table import PoltaTable
+from sample.metastore import sample_metastore
+
 from .pipes.user import UserPipe
 
 
@@ -16,7 +17,7 @@ table: PoltaTable = PoltaTable(
     Field('active_ind', 'boolean')
   ]),
   primary_keys=['id'],
-  metastore_directory=path.join(getcwd(), 'sample', 'test_metastore')
+  metastore=sample_metastore
 )
 
 pipe: UserPipe = UserPipe(table)

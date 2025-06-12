@@ -11,6 +11,7 @@ from typing import Tuple, Union
 from polta.enums import TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
 from polta.maps import PoltaMaps
+from polta.metastore import PoltaMetastore
 from polta.types import RawPoltaData
 
 
@@ -25,28 +26,25 @@ class PoltaTable:
     
   Optional Args:
     raw_schema (Union[Schema, None]): a deltalake schema (default None)
-    metastore_directory (str): The absolute path to the metastore dir (default CWD + 'metastore')
+    metastore (PoltaMetastore): The metastore (default PoltaMetastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
   Initialized fields:
-    tables_directory (str): the absolute path to the top-level tables directory
-    volumes_directory (str): the absolute path to the top-level volumes directory
     table_path (str): the absolute path to the Polta Table in the metastore
     state_file_directory (str): the absolute path to the state files directory
     state_file_path (str): the absolute path to the Polta Table state file
     schema_polars (dict[str, DataType]): the table schema as a Polars object
     schema_deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
+    merge_predicate (str): the SQL merge predicate for upserts
   """
   domain: str
   quality: TableQuality
   name: str
   raw_schema: Union[Schema, None] = field(default_factory=lambda: None)
-  metastore_directory: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
+  metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
-  tables_directory: str = field(init=False)
-  volumes_directory: str = field(init=False)
   table_path: str = field(init=False)
   ingestion_zone_path: str = field(init=False)
   state_file_directory: str = field(init=False)
@@ -57,22 +55,20 @@ class PoltaTable:
   merge_predicate: str = field(init=False)
 
   def __post_init__(self) -> None:
-    self.tables_directory: str = path.join(self.metastore_directory, 'tables')
-    self.volumes_directory: str = path.join(self.metastore_directory, 'volumes')
     self.table_path: str = path.join(
-      self.tables_directory,
+      self.metastore.tables_directory,
       self.domain,
       self.quality.value,
       self.name
     )
     self.ingestion_zone_path: str = path.join(
-      self.volumes_directory,
+      self.metastore.volumes_directory,
       'ingestion',
       self.domain,
       self.name
     )
     self.state_file_directory: str = path.join(
-      self.volumes_directory,
+      self.metastore.volumes_directory,
       'state',
       self.domain,
       self.quality.value,
