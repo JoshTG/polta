@@ -3,6 +3,8 @@ name: Publish Python distribution to PyPI
 on: push
 
 jobs:
+  run-pytest:
+    uses: JoshTG/polta/.github/workflows/run-pytest.yml
   build:
     uses: JoshTG/polta/.github/workflows/build.yml
   publish-to-testpypi:
