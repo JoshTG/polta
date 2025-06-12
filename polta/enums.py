@@ -6,6 +6,7 @@ class TableQuality(Enum):
   RAW = 'raw'
   CONFORMED = 'conformed'
   CANONICAL = 'canonical'
+  EXPORT = 'export'
 
 class LoadLogic(Enum):
   """The method of saving data to a Delta Table"""
