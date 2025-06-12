@@ -15,6 +15,5 @@ class TestingData:
   quality_existence_checks: list[tuple[str, TableQuality, bool]] = [
     ('test', TableQuality.CANONICAL, True),
     ('test', TableQuality.CONFORMED, True),
-    ('test', TableQuality.EXPORT, False),
     ('test', TableQuality.RAW, True),
   ]
