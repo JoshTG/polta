@@ -5,7 +5,7 @@ from polars import DataFrame
 from typing import Any
 from unittest import TestCase
 
-from tests.testing_data.table import TestingData
+from tests.unit.testing_data.table import TestingData
 
 
 class TestTable(TestCase):
@@ -62,6 +62,11 @@ class TestTable(TestCase):
     self.td.table.touch_state_file()
     assert path.exists(self.td.table.state_file_path)
 
+  def test_ingestion_zone_directory(self) -> None:
+    # Assert a raw table enforces ingestion volume creation
+    self.td.raw_table.get()
+    assert path.exists(self.td.raw_table.ingestion_zone_path)
+
   def test_get_last_modified_datetime(self) -> None:
     # Touch state file and assert it is on the same date as today or yesterday
     # This should only fail if executed exactly before midnight on the first of a new month
@@ -79,9 +84,9 @@ class TestTable(TestCase):
     last_modified_record: dict[str, Any] = self.td.table.get_last_modified_record()
     now: datetime = datetime.now()
     assert isinstance(last_modified_record, dict)
-    assert last_modified_record['catalog'] == self.td.table.catalog_name
-    assert last_modified_record['schema'] == self.td.table.schema_name
-    assert last_modified_record['table'] == self.td.table.table_name
+    assert last_modified_record['domain'] == self.td.table.domain
+    assert last_modified_record['quality'] == self.td.table.quality.value
+    assert last_modified_record['table'] == self.td.table.name
     assert last_modified_record['path'] == self.td.table.table_path
     assert 'last_modified_datetime' in last_modified_record
     last_modified_datetime: datetime = last_modified_record['last_modified_datetime']

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from deltalake import DeltaTable, Schema
+from deltalake import DeltaTable, Field, Schema, TableFeatures
 from os import getcwd, makedirs, path
 from pathlib import Path
 from polars import DataFrame, read_delta
@@ -8,11 +8,10 @@ from polars.datatypes import DataType
 from shutil import rmtree
 from typing import Tuple, Union
 
-from polta.exceptions import (
-  PoltaDataFormatNotRecognized,
-  RawSchemaNotRecognized
-)
-from polta.map import PoltaMap
+from polta.enums import TableQuality
+from polta.exceptions import PoltaDataFormatNotRecognized
+from polta.maps import PoltaMaps
+from polta.metastore import PoltaMetastore
 from polta.types import RawPoltaData
 
 
@@ -21,35 +20,33 @@ class PoltaTable:
   """Class to store all applicable information for a Polars + Delta Table
   
   Positional Args:
-    catalog_name (str): the name of the catalog
-    schema_name (str): the name of the schema
-    table_name (str): the name of the table
-    raw_schema (Union[Schema, dict[str, DataType]]): a deltalake or polars schema
+    domain (str): the kind of data this table contains
+    quality (TableQuality): the quality of the data
+    name (str): the name of the table
     
   Optional Args:
-    metastore_directory (str): The absolute path to the metastore dir (default CWD + 'metastore')
+    raw_schema (Union[Schema, None]): a deltalake schema (default None)
+    metastore (PoltaMetastore): The metastore (default PoltaMetastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
   Initialized fields:
-    tables_directory (str): the absolute path to the top-level tables directory
-    volumes_directory (str): the absolute path to the top-level volumes directory
     table_path (str): the absolute path to the Polta Table in the metastore
     state_file_directory (str): the absolute path to the state files directory
     state_file_path (str): the absolute path to the Polta Table state file
     schema_polars (dict[str, DataType]): the table schema as a Polars object
     schema_deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
+    merge_predicate (str): the SQL merge predicate for upserts
   """
-  catalog_name: str
-  schema_name: str
-  table_name: str
-  raw_schema: Union[Schema, dict[str, DataType]]
-  metastore_directory: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
+  domain: str
+  quality: TableQuality
+  name: str
+  raw_schema: Union[Schema, None] = field(default_factory=lambda: None)
+  metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
-  tables_directory: str = field(init=False)
-  volumes_directory: str = field(init=False)
   table_path: str = field(init=False)
+  ingestion_zone_path: str = field(init=False)
   state_file_directory: str = field(init=False)
   state_file_path: str = field(init=False)
   schema_polars: dict[str, DataType] = field(init=False)
@@ -58,30 +55,37 @@ class PoltaTable:
   merge_predicate: str = field(init=False)
 
   def __post_init__(self) -> None:
-    self.tables_directory: str = path.join(self.metastore_directory, 'tables')
-    self.volumes_directory: str = path.join(self.metastore_directory, 'volumes')
     self.table_path: str = path.join(
-      self.tables_directory,
-      self.catalog_name,
-      self.schema_name,
-      self.table_name
+      self.metastore.tables_directory,
+      self.domain,
+      self.quality.value,
+      self.name
+    )
+    self.ingestion_zone_path: str = path.join(
+      self.metastore.volumes_directory,
+      'ingestion',
+      self.domain,
+      self.name
     )
     self.state_file_directory: str = path.join(
-      self.volumes_directory,
+      self.metastore.volumes_directory,
       'state',
-      self.catalog_name,
-      self.schema_name,
-      self.table_name            
+      self.domain,
+      self.quality.value,
+      self.name            
     )
     self.state_file_path: str = path.join(
       self.state_file_directory,
       '.STATE'
     )
-    self.schema_deltalake, self.schema_polars = self.build_schemas_from_raw(self.raw_schema)
+    self.schema_deltalake, self.schema_polars = self.build_schemas_from_raw(self.quality, self.raw_schema)
     self.columns: list[str] = list(self.schema_polars.keys())
 
     if self.primary_keys:
       self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
+    if self.quality.value == TableQuality.RAW.value:
+      self._build_ingestion_zone_if_not_exists()
+    PoltaTable.create_if_not_exists(self.table_path, self.schema_deltalake)
 
   @staticmethod
   def create_if_not_exists(table_path: str, schema: Schema) -> None:
@@ -100,24 +104,28 @@ class PoltaTable:
     if not DeltaTable.is_deltatable(table_path):
       makedirs(table_path, exist_ok=True)
 
-    DeltaTable.create(table_path, schema)
+    dt: DeltaTable = DeltaTable.create(table_path, schema, mode='ignore')
+    dt.alter.add_feature(
+      feature=TableFeatures.TimestampWithoutTimezone,
+      allow_protocol_versions_increase=True
+    )   
 
   @staticmethod
-  def build_schemas_from_raw(raw_schema: Union[Schema, dict[str, DataType]]) -> \
+  def build_schemas_from_raw(quality: TableQuality, raw_schema: Union[Schema, None]) -> \
                         Tuple[Schema, dict[str, DataType]]:
-    """Takes a raw schema, either polars or deltalake, and populates both schema versions from it
+    """Takes a raw deltalake schema and populates deltalake and polars schemas from it
     
     Args:
-      raw_schema (Union[Schema, dict[str, DataType]]): the raw schema, either polars or deltalake
+      quality (TableQuality): the quality of the table, to decide proper metadata
+      raw_schema (Union[Schema, None]): the raw schema, if applicable
     
     Returns:
       deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
     """
-    if isinstance(raw_schema, Schema):
-      return raw_schema, PoltaMap.deltalake_schema_to_polars_schema(raw_schema)
-    elif isinstance(raw_schema, dict):
-      return PoltaMap.polars_schema_to_deltalake_schema(raw_schema), raw_schema
-    raise RawSchemaNotRecognized(raw_schema)
+    metadata_schema: Schema = PoltaMaps.QUALITY_TO_METADATA_COLUMNS[quality.value]
+    fields: list[Field] = metadata_schema + (raw_schema.fields if raw_schema is not None else [])
+    dl_schema: Schema = Schema(fields)
+    return dl_schema, PoltaMaps.deltalake_schema_to_polars_schema(dl_schema)
 
   @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:
@@ -173,7 +181,7 @@ class PoltaTable:
     """Retrieves a record, or records, by a specific condition, expecting only one record to return
       
     Args:
-      filter_conditions (optional) (dict): if applicable, the filter conditions (e.g., {file_path: 'path.csv'})
+      filter_conditions (optional) (dict): if applicable, the filter conditions (e.g., {file_path: 'path.json'})
       partition_by (optional) (list[str]): if applicable, the keys by which to partition during deduplication
       order_by (optional) (list[str]): if applicable, the columns by which to order during deduplication
       order_by_descending (optional) (bool): if applicable, whether to ORDER BY DESC
@@ -331,9 +339,15 @@ class PoltaTable:
       last_modified_record (dict[str, any]): the metadata of the table's last modified timestamp
     """
     return {
-      'catalog': self.catalog_name,
-      'schema': self.schema_name,
-      'table': self.table_name,
+      'domain': self.domain,
+      'quality': self.quality.value,
+      'table': self.name,
       'path': self.table_path,
       'last_modified_datetime': self.get_last_modified_datetime()
     }
+
+  def _build_ingestion_zone_if_not_exists(self) -> None:
+    """Builds an empty directory for ingesting files"""
+    if not path.exists(self.ingestion_zone_path):
+      makedirs(self.ingestion_zone_path, exist_ok=True)
+      print(f'Ingestion zone created: {self.ingestion_zone_path}')

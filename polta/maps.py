@@ -1,4 +1,4 @@
-from deltalake import DataType as dlDataType, Field, Schema
+from deltalake import Field, Schema
 from deltalake.schema import ArrayType
 from json import loads
 from polars.datatypes import (
@@ -19,8 +19,8 @@ from typing import Union
 from polta.exceptions import DataTypeNotRecognized
 
 
-class PoltaMap:
-  DELTALAKE_TO_POLARS_FIELD_MAP: dict[str, plDataType] = {
+class PoltaMaps:
+  DELTALAKE_TO_POLARS_FIELD: dict[str, plDataType] = {
     'boolean': Boolean,
     'date': Date,
     'double': Float64,
@@ -28,9 +28,9 @@ class PoltaMap:
     'integer': Int32,
     'long': Int64,
     'string': String,
-    'timestamp': Datetime(time_zone='America/New_York')
+    'timestamp': Datetime(time_zone='UTC')
   }
-  POLARS_TO_DELTALAKE_FIELD_MAP: dict[plDataType, str] = {
+  POLARS_TO_DELTALAKE_FIELD: dict[plDataType, str] = {
     Boolean: 'boolean',
     Date: 'date',
     Float64: 'double',
@@ -38,7 +38,32 @@ class PoltaMap:
     Int32: 'integer',
     Int64: 'long',
     String: 'string',
-    Datetime(time_zone='America/New_York'): 'timestamp'
+    Datetime(time_zone='UTC'): 'timestamp'
+  }
+  QUALITY_TO_METADATA_COLUMNS: dict[str, list[Field]] = {
+    'raw': [
+      Field('_raw_id', 'string'),
+      Field('_ingested_ts', 'timestamp'),
+      Field('_file_path', 'string'),
+      Field('_file_name', 'string'),
+      Field('_file_mod_ts', 'timestamp')
+    ],
+    'conformed': [
+      Field('_raw_id', 'string'),
+      Field('_conformed_id', 'string'),
+      Field('_conformed_ts', 'timestamp'),
+      Field('_ingested_ts', 'timestamp'),
+      Field('_file_path', 'string'),
+      Field('_file_name', 'string'),
+      Field('_file_mod_ts', 'timestamp')
+    ],
+    'canonical': [
+      Field('_raw_id', 'string'),
+      Field('_conformed_id', 'string'),
+      Field('_canonicalized_id', 'string'),
+      Field('_created_ts', 'timestamp'),
+      Field('_modified_ts', 'timestamp')
+    ]
   }
 
   @staticmethod
@@ -57,7 +82,7 @@ class PoltaMap:
       wrap_in_list: bool = True
     if not isinstance(delta_field, str):
       raise TypeError('Error: delta_field must be of type <str> or <dict>')
-    dt: Union[plDataType, str] = PoltaMap.DELTALAKE_TO_POLARS_FIELD_MAP.get(delta_field, '')
+    dt: Union[plDataType, str] = PoltaMaps.DELTALAKE_TO_POLARS_FIELD.get(delta_field, '')
     if isinstance(dt, str):
       raise DataTypeNotRecognized(dt)
     return List(dt) if wrap_in_list else dt
@@ -75,7 +100,7 @@ class PoltaMap:
     polars_schema: dict[str, plDataType] = {}
 
     for field in loads(schema.to_json())['fields']:
-      polars_schema[field['name']] = PoltaMap.deltalake_field_to_polars_field(field['type'])
+      polars_schema[field['name']] = PoltaMaps.deltalake_field_to_polars_field(field['type'])
       if field['type'] == 'timestamp':
         polars_schema[field['name']]
       
@@ -83,14 +108,23 @@ class PoltaMap:
 
   @staticmethod
   def polars_field_to_deltalake_field(column: str, data_type: plDataType) -> Field:
+    """Converts a polars field to a deltalake field
+    
+    Args:
+      column (str): the name of the column
+      data_type (DataType): polars DataType
+    
+    Returns:
+      field (Field): the resulting deltalake field
+    """
     try:
       if isinstance(data_type, Array):
         return Field(column, data_type.element_type)
       elif isinstance(data_type, List):
-        dt: Union[str, None] = PoltaMap.POLARS_TO_DELTALAKE_FIELD_MAP[data_type.inner]
+        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
         return Field(column, ArrayType(dt))
       else:
-        dt: Union[str, None] = PoltaMap.POLARS_TO_DELTALAKE_FIELD_MAP[data_type]
+        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type]
         return Field(column, dt)
     except KeyError:
       raise DataTypeNotRecognized(data_type)
@@ -107,5 +141,5 @@ class PoltaMap:
     """
     fields: list[plDataType] = []
     for column, data_type in schema.items():
-      fields.append(PoltaMap.polars_field_to_deltalake_field(column, data_type))
+      fields.append(PoltaMaps.polars_field_to_deltalake_field(column, data_type))
     return Schema(fields)
