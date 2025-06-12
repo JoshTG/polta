@@ -1,5 +1,4 @@
 from deltalake import Field, Schema
-from os import getcwd, path
 
 from polta.enums import (
   DirectoryType,
@@ -10,6 +9,7 @@ from polta.enums import (
 from polta.ingester import PoltaIngester
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
+from sample.metastore import sample_metastore
 
 
 table: PoltaTable = PoltaTable(
@@ -20,7 +20,7 @@ table: PoltaTable = PoltaTable(
     Field('id', 'string'),
     Field('name', 'string')
   ]),
-  metastore_directory=path.join(getcwd(), 'sample', 'test_metastore')
+  metastore=sample_metastore
 )
 
 ingester: PoltaIngester = PoltaIngester(

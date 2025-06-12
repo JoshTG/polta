@@ -1,10 +1,10 @@
 from datetime import datetime, UTC
 from deltalake import Field, Schema
-from os import getcwd, path
 from typing import Any
 
 from polta.enums import TableQuality
 from polta.table import PoltaTable
+from sample.metastore import sample_metastore
 from sample.raw.activity import \
   table as pt_raw_activity
 
@@ -21,7 +21,7 @@ class TestingData:
       Field('active_ind', 'boolean')
     ]),
     primary_keys=['id', 'name'],
-    metastore_directory=path.join(getcwd(), 'sample', 'test_metastore')
+    metastore=sample_metastore
   )
 
   expected_merge_predicate: str = 's.id = t.id AND s.name = t.name'

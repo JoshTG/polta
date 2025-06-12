@@ -1,8 +1,9 @@
-from os import getcwd, path
+from os import path
 from unittest import TestCase
 
 from polta.enums import TableQuality
 from polta.metastore import PoltaMetastore
+from sample.metastore import sample_metastore
 from sample.pipelines.user import pp_can_user
 from tests.unit.testing_data.metastore import TestingData
 
@@ -10,9 +11,7 @@ from tests.unit.testing_data.metastore import TestingData
 class TestMetastore(TestCase):
   # Retrieve test data and initialize the metastore
   td: TestingData = TestingData()
-  pm: PoltaMetastore = PoltaMetastore(
-    main_path=path.join(getcwd(), 'sample', 'test_metastore')
-  )
+  pm: PoltaMetastore = sample_metastore
   # Execute the pipeline to ensure tables exist
   pp_can_user.execute()
 
