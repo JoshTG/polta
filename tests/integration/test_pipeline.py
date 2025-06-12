@@ -1,33 +1,34 @@
 from polars import DataFrame
 from unittest import TestCase
 
-from tests.testing_tables.canonical.user import user_table
-from tests.testing_tables.conformed.activity import (
-  activity_table as conformed_activity_table
-)
-from tests.testing_tables.conformed.name import name_table
-from tests.testing_tables.pipeline import user_pipeline
-from tests.testing_tables.raw.activity import (
-  activity_table as raw_activity_table
-)
+from sample.canonical.user import \
+  table as pt_can_user
+from sample.conformed.activity import \
+  table as pt_con_activity
+from sample.conformed.name import \
+  table as pt_con_name
+from sample.pipelines.user import \
+  pipeline as ppl_user
+from sample.raw.activity import \
+  table as pt_raw_activity
 
 
 class TestPipeline(TestCase):
   def test_pipeline(self) -> None:
     # Truncate tables first
-    raw_activity_table.truncate()
-    conformed_activity_table.truncate()
-    name_table.truncate()
-    user_table.truncate()
+    pt_raw_activity.truncate()
+    pt_con_activity.truncate()
+    pt_con_name.truncate()
+    pt_can_user.truncate()
 
     # Execute pipeline
-    user_pipeline.execute()
+    ppl_user.execute()
 
     # Get resulting Delta Tables as DataFrames
-    df_activity_raw: DataFrame = raw_activity_table.get()
-    df_activity_conformed: DataFrame = conformed_activity_table.get()
-    df_name: DataFrame = name_table.get()
-    df_user: DataFrame = user_table.get()
+    df_activity_raw: DataFrame = pt_raw_activity.get()
+    df_activity_conformed: DataFrame = pt_con_activity.get()
+    df_name: DataFrame = pt_con_name.get()
+    df_user: DataFrame = pt_can_user.get()
 
     # Assert proper lengths
     assert df_activity_raw.shape[0] == 2

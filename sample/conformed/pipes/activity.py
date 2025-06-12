@@ -1,42 +1,47 @@
-from deltalake import Field, Schema
-from os import getcwd, path
 from polars import col, DataFrame
 from polars.datatypes import DataType, List, Struct
 
-from polta.enums import LoadLogic, TableQuality
+from polta.enums import LoadLogic
 from polta.maps import PoltaMaps
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 from polta.udfs import string_to_struct
-from tests.testing_tables.raw.activity import activity_table as raw_table
+from sample.raw.activity import \
+  table as pt_raw_activity
 
-
-activity_table: PoltaTable = PoltaTable(
-  domain='test',
-  quality=TableQuality.CONFORMED,
-  name='activity',
-  raw_schema=Schema([
-    Field('id', 'string'),
-    Field('active_ind', 'boolean')
-  ]),
-  metastore_directory=path.join(getcwd(), 'tests', 'testing_tables', 'test_metastore')
-)
 
 class ActivityPipe(PoltaPipe):
-  def __init__(self) -> None:
-    super().__init__(activity_table, LoadLogic.APPEND)
+  """Pipe to load activity data into a conformed model"""
+  def __init__(self, table: PoltaTable) -> None:
+    super().__init__(table, LoadLogic.APPEND)
     self.raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
   
   def load_dfs(self) -> dict[str, DataFrame]:
+    """Basic load logic:
+      1. Get raw activity data as a DataFrame
+      2. Anti join against conformed layer to get net-new records
+    
+    Returns:
+      dfs (dict[str, DataFrame]): The resulting data as 'activity'
+    """
     conformed_ids: DataFrame = self.table.get(select=['_raw_id'], unique=True)
-    df: DataFrame = (raw_table
+    df: DataFrame = (pt_raw_activity
       .get()
       .join(conformed_ids, '_raw_id', 'anti')
     )
     return {'activity': df}
 
   def transform(self) -> DataFrame:
+    """Basic transformation logic:
+      1. Retrieve the raw activity DataFrame
+      2. Convert 'payload' into a struct
+      3. Explode the struct
+      4. Convert the struct key-value pairs into column-cell values
+
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
     df: DataFrame = self.dfs['activity']
 
     return (df
@@ -51,5 +56,3 @@ class ActivityPipe(PoltaPipe):
       ])
       .drop('payload')
     )
-
-activity_pipe: ActivityPipe = ActivityPipe()

@@ -2,17 +2,19 @@ from polars import DataFrame
 from unittest import TestCase
 
 from polta.enums import DirectoryType
-from polta.ingest import PoltaIngest
-from tests.testing_tables.raw.activity import activity_pipe
-from tests.testing_tables.conformed.name import name_ingest
+from polta.ingester import PoltaIngester
+from sample.raw.activity import \
+  pipe as pp_raw_activity
+from sample.conformed.name import \
+  pipe as pp_con_name
 
 
 class TestIngest(TestCase):
   def test_simple_ingest(self) -> None:
-    activity_ingest: PoltaIngest = activity_pipe.ingest_logic
-    activity_ingest.table.truncate()
-    assert activity_ingest.simple_payload
-    df: DataFrame = activity_ingest.ingest()
+    ingester: PoltaIngester = pp_raw_activity.ingester
+    ingester.table.truncate()
+    assert ingester.simple_payload
+    df: DataFrame = ingester.ingest()
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 2
     assert '_raw_id' in df.columns
@@ -24,10 +26,11 @@ class TestIngest(TestCase):
     assert len(df.columns) == 6
 
   def test_json_ingest(self) -> None:
-    name_ingest.table.truncate()
-    assert name_ingest.directory_type.value == DirectoryType.DATED.value
-    assert not name_ingest.simple_payload
-    df: DataFrame = name_ingest.ingest()
+    pp_con_name.table.truncate()
+    ingester: PoltaIngester = pp_con_name.ingester
+    assert ingester.directory_type.value == DirectoryType.DATED.value
+    assert not ingester.simple_payload
+    df: DataFrame = ingester.ingest()
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 3
     assert '_raw_id' in df.columns

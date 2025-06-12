@@ -1,7 +1,7 @@
 import polars as pl
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from deltalake import Field, Schema
 from os import listdir, path
 from polars import DataFrame
@@ -17,7 +17,7 @@ from polta.udfs import file_path_to_json, file_path_to_payload
 
 
 @dataclass
-class PoltaIngest:
+class PoltaIngester:
   """Dataclass for ingesting files into the target table"""
   table: PoltaTable
   directory_type: DirectoryType
@@ -34,7 +34,7 @@ class PoltaIngest:
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
     self.payload_field: Field = Field('payload', 'string')
     self.simple_payload: bool = self.table.raw_schema.fields == [self.payload_field]
-    self.metadata_schema: list[Field] = PoltaMaps.QUALITY_TO_METADATA_COLUMNS_MAP['raw']
+    self.metadata_schema: list[Field] = PoltaMaps.QUALITY_TO_METADATA_COLUMNS['raw']
     self.payload_schema: dict[str, DataType] = PoltaMaps.deltalake_schema_to_polars_schema(
       schema=Schema(self.metadata_schema + [self.payload_field])
     )
@@ -86,7 +86,6 @@ class PoltaIngest:
     )
 
     return (paths
-      .with_columns([pl.col('_file_mod_ts').dt.replace_time_zone('utc').alias('_file_mod_ts')])
       .join(hx, '_file_path', 'left')
       .filter(
         (pl.col('_file_mod_ts') > pl.col('_file_mod_ts_right')) |
@@ -128,7 +127,7 @@ class PoltaIngest:
       _ingested_ts=datetime.now(),
       _file_path=file_path,
       _file_name=path.basename(file_path),
-      _file_mod_ts=datetime.fromtimestamp(path.getmtime(file_path))
+      _file_mod_ts=datetime.fromtimestamp(path.getmtime(file_path), tz=UTC)
     )
 
   def _run_simple_load(self, df: DataFrame) -> DataFrame:

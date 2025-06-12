@@ -7,12 +7,12 @@ from polta.enums import (
   RawFileType,
   TableQuality
 )
-from polta.ingest import PoltaIngest
+from polta.ingester import PoltaIngester
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 
 
-name_table: PoltaTable = PoltaTable(
+table: PoltaTable = PoltaTable(
   domain='test',
   quality=TableQuality.CONFORMED,
   name='name',
@@ -20,17 +20,17 @@ name_table: PoltaTable = PoltaTable(
     Field('id', 'string'),
     Field('name', 'string')
   ]),
-  metastore_directory=path.join(getcwd(), 'tests', 'testing_tables', 'test_metastore')
+  metastore_directory=path.join(getcwd(), 'sample', 'test_metastore')
 )
 
-name_ingest: PoltaIngest = PoltaIngest(
-  table=name_table,
+ingester: PoltaIngester = PoltaIngester(
+  table=table,
   directory_type=DirectoryType.DATED,
   raw_file_type=RawFileType.JSON
 )
 
-name_pipe: PoltaPipe = PoltaPipe(
-  table=name_table,
+pipe: PoltaPipe = PoltaPipe(
+  table=table,
   load_logic=LoadLogic.APPEND,
-  ingest_logic=name_ingest
+  ingester=ingester
 )

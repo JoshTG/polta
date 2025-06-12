@@ -1,5 +1,5 @@
 from datetime import datetime
-from polars import DataFrame, lit
+from polars import DataFrame
 from typing import Any
 
 from polta.enums import LoadLogic

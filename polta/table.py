@@ -126,7 +126,7 @@ class PoltaTable:
     Returns:
       deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
     """
-    metadata_schema: Schema = PoltaMaps.QUALITY_TO_METADATA_COLUMNS_MAP[quality.value]
+    metadata_schema: Schema = PoltaMaps.QUALITY_TO_METADATA_COLUMNS[quality.value]
     fields: list[Field] = metadata_schema + (raw_schema.fields if raw_schema is not None else [])
     dl_schema: Schema = Schema(fields)
     return dl_schema, PoltaMaps.deltalake_schema_to_polars_schema(dl_schema)

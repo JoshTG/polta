@@ -12,7 +12,7 @@ from polta.exceptions import (
   LoadLogicNotRecognized,
   TableQualityNotRecognized
 )
-from polta.ingest import PoltaIngest
+from polta.ingester import PoltaIngester
 from polta.table import PoltaTable
 
 
@@ -37,7 +37,7 @@ class PoltaPipe:
   """
   table: PoltaTable
   load_logic: LoadLogic
-  ingest_logic: Union[PoltaIngest, None] = field(default_factory=lambda: None)
+  ingester: Union[PoltaIngester, None] = field(default_factory=lambda: None)
   strict: bool = field(default_factory=lambda: False)
   dfs: dict[str, DataFrame] = field(init=False)
 
@@ -47,8 +47,8 @@ class PoltaPipe:
   def execute(self) -> int:
     """Executes the pipe"""
     self.dfs: dict[str, DataFrame] = self.load_dfs()
-    if self.ingest_logic:
-      self.dfs['raw'] = self.ingest_logic.ingest()
+    if self.ingester:
+      self.dfs['raw'] = self.ingester.ingest()
     df: DataFrame = self.transform()
     df: DataFrame = self.add_metadata_columns(df)
     df: DataFrame = self.conform_schema(df)
@@ -73,7 +73,7 @@ class PoltaPipe:
     Returns:
       df (DataFrame): the transformed DataFrame
     """
-    if self.ingest_logic:
+    if self.ingester:
       return self.dfs['raw']
     return DataFrame([], self.table.schema_polars)
 

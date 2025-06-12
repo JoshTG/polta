@@ -20,7 +20,7 @@ from polta.exceptions import DataTypeNotRecognized
 
 
 class PoltaMaps:
-  DELTALAKE_TO_POLARS_FIELD_MAP: dict[str, plDataType] = {
+  DELTALAKE_TO_POLARS_FIELD: dict[str, plDataType] = {
     'boolean': Boolean,
     'date': Date,
     'double': Float64,
@@ -28,9 +28,9 @@ class PoltaMaps:
     'integer': Int32,
     'long': Int64,
     'string': String,
-    'timestamp': Datetime
+    'timestamp': Datetime(time_zone='UTC')
   }
-  POLARS_TO_DELTALAKE_FIELD_MAP: dict[plDataType, str] = {
+  POLARS_TO_DELTALAKE_FIELD: dict[plDataType, str] = {
     Boolean: 'boolean',
     Date: 'date',
     Float64: 'double',
@@ -38,9 +38,9 @@ class PoltaMaps:
     Int32: 'integer',
     Int64: 'long',
     String: 'string',
-    Datetime: 'timestamp'
+    Datetime(time_zone='UTC'): 'timestamp'
   }
-  QUALITY_TO_METADATA_COLUMNS_MAP: dict[str, list[Field]] = {
+  QUALITY_TO_METADATA_COLUMNS: dict[str, list[Field]] = {
     'raw': [
       Field('_raw_id', 'string'),
       Field('_ingested_ts', 'timestamp'),
@@ -82,7 +82,7 @@ class PoltaMaps:
       wrap_in_list: bool = True
     if not isinstance(delta_field, str):
       raise TypeError('Error: delta_field must be of type <str> or <dict>')
-    dt: Union[plDataType, str] = PoltaMaps.DELTALAKE_TO_POLARS_FIELD_MAP.get(delta_field, '')
+    dt: Union[plDataType, str] = PoltaMaps.DELTALAKE_TO_POLARS_FIELD.get(delta_field, '')
     if isinstance(dt, str):
       raise DataTypeNotRecognized(dt)
     return List(dt) if wrap_in_list else dt
@@ -121,10 +121,10 @@ class PoltaMaps:
       if isinstance(data_type, Array):
         return Field(column, data_type.element_type)
       elif isinstance(data_type, List):
-        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD_MAP[data_type.inner]
+        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
         return Field(column, ArrayType(dt))
       else:
-        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD_MAP[data_type]
+        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type]
         return Field(column, dt)
     except KeyError:
       raise DataTypeNotRecognized(data_type)
