@@ -22,7 +22,6 @@ class PoltaIngest:
   table: PoltaTable
   directory_type: DirectoryType
   raw_file_type: RawFileType
-  track_history: bool = field(default_factory=lambda: False)
 
   raw_polars_schema: dict[str, DataType] = field(init=False)
   payload_field: Field = field(init=False)

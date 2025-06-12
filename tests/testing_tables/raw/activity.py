@@ -1,4 +1,3 @@
-from deltalake import Field, Schema
 from os import getcwd, path
 
 from polta.enums import (
@@ -19,7 +18,6 @@ activity_table: PoltaTable = PoltaTable(
   raw_schema=Schema([
     Field('payload', 'string')
   ]),
-  primary_keys=['id'],
   metastore_directory=path.join(getcwd(), 'tests', 'testing_tables', 'test_metastore')
 )
 
