@@ -29,7 +29,8 @@ class TestMetastore(TestCase):
   def test_list_qualities(self) -> None:
     # Assert metastore can return the list of qualities
     qualities: list[TableQuality] = self.pm.list_qualities(self.td.domains[0])
-    assert qualities == self.td.qualities
+    assert sorted([q.value for q in qualities]) == \
+      sorted([q.value for q in self.td.qualities])
   
   def test_domain_exists(self) -> None:
     # Assert metastore can determine domain existence correctly
