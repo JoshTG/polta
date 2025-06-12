@@ -89,6 +89,17 @@ poetry run pytest tests/ -vv -s
 
 Below are sample code snippets to show basic usage. For a full sample pipeline, consult the `sample` directory in the repository for an example pipeline. These tables, pipes, and pipeline get used in the integration test which is located in the `tests/integration/test_pipeline.py` pytest file.
 
+## Sample Metastore
+
+The creation of a new metastore is simple. Below is a sample metastore that can be passed into the initialization of any `PoltaTable` to ensure the table writes to the metastore.
+
+```python
+from polta.metastore import PoltaMetastore
+
+
+metastore: PoltaMetastore = PoltaMetastore('path/to/desired/store')
+```
+
 ## Sample Simple PoltaPipe
 
 This sample code illustrates a simple raw ingestion pipe.
@@ -108,6 +119,8 @@ from polta.ingester import PoltaIngester
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 
+from .metastore import metastore
+
 
 table: PoltaTable = PoltaTable(
   domain='sample',
@@ -115,7 +128,8 @@ table: PoltaTable = PoltaTable(
   name='table',
   raw_schema=Schema([
     Field('payload', 'string')
-  ])
+  ]),
+  metastore=metastore
 )
 
 ingester: PoltaIngester = PoltaIngester(
@@ -212,6 +226,7 @@ from deltalake import Field, Schema
 from polta.enums import TableQuality
 from polta.table import PoltaTable
 from .pipes.sample import SampleComplexPipe
+from .metastore import metastore
 
 
 table: PoltaTable = PoltaTable(
@@ -221,7 +236,8 @@ table: PoltaTable = PoltaTable(
   raw_schema=Schema([
     Field('id', 'string'),
     Field('active_ind', 'boolean')
-  ])
+  ]),
+  metastore=metastore
 )
 
 pipe: SampleComplexPipe = SampleComplexPipe(table)
