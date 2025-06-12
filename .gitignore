@@ -1,4 +1,14 @@
+# Environment/IDE files
 .venv
-tests/testing_data/test_metastore/
+.vscode
+
+# Test metastore files
+**/test_metastore/tables/
+**/test_metastore/volumes/state/
+
+# Generated test/cache files
 .pytest_cache
 __pycache__
+
+# User-generated files
+*scratch.ipynb

@@ -5,7 +5,7 @@ from polars import DataFrame
 from typing import Any
 from unittest import TestCase
 
-from tests.testing_data.table import TestingData
+from tests.unit.testing_data.table import TestingData
 
 
 class TestTable(TestCase):
@@ -61,6 +61,11 @@ class TestTable(TestCase):
     # Assert touch state file creates a state file
     self.td.table.touch_state_file()
     assert path.exists(self.td.table.state_file_path)
+
+  def test_ingestion_zone_directory(self) -> None:
+    # Assert a raw table enforces ingestion volume creation
+    self.td.raw_table.get()
+    assert path.exists(self.td.raw_table.ingestion_zone_path)
 
   def test_get_last_modified_datetime(self) -> None:
     # Touch state file and assert it is on the same date as today or yesterday
