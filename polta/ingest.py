@@ -59,11 +59,13 @@ class PoltaIngest:
         for f in listdir(self.table.ingestion_zone_path)
       ]
     elif self.directory_type.value == DirectoryType.DATED.value:
+      file_paths: list[str] = []
       for date_str in listdir(self.table.ingestion_zone_path):
-        return [
+        file_paths.extend([
           path.join(self.table.ingestion_zone_path, date_str, f)
-          for f in listdir(self.table.ingestion_zone_path)
-        ]
+          for f in listdir(path.join(self.table.ingestion_zone_path, date_str))
+        ])
+      return file_paths
     else:
       raise DirectoryTypeNotRecognized(self.directory_type)
 

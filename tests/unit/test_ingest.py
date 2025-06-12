@@ -1,6 +1,7 @@
 from polars import DataFrame
 from unittest import TestCase
 
+from polta.enums import DirectoryType
 from polta.ingest import PoltaIngest
 from tests.testing_tables.raw.activity import activity_pipe
 from tests.testing_tables.conformed.name import name_ingest
@@ -24,6 +25,7 @@ class TestIngest(TestCase):
 
   def test_json_ingest(self) -> None:
     name_ingest.table.truncate()
+    assert name_ingest.directory_type.value == DirectoryType.DATED.value
     assert not name_ingest.simple_payload
     df: DataFrame = name_ingest.ingest()
     assert isinstance(df, DataFrame)

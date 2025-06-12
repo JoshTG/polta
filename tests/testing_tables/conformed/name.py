@@ -25,7 +25,7 @@ name_table: PoltaTable = PoltaTable(
 
 name_ingest: PoltaIngest = PoltaIngest(
   table=name_table,
-  directory_type=DirectoryType.SHALLOW,
+  directory_type=DirectoryType.DATED,
   raw_file_type=RawFileType.JSON
 )
 

@@ -1,3 +1,4 @@
+from deltalake import Field, Schema
 from os import getcwd, path
 
 from polta.enums import (
