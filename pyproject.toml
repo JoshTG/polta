@@ -1,6 +1,6 @@
 [project]
 name = "polta"
-version = "0.3.2"
+version = "0.3.4"
 description = "Data engineering tool combining Polars transformations with Delta tables/lakes"
 authors = [
   {name = "JoshTG"}
