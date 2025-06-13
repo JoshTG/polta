@@ -13,6 +13,12 @@ class DirectoryTypeNotRecognized(Exception):
     self.message: str = directory_type
     super().__init__(self.message)
 
+class DomainDoesNotExist(Exception):
+  """Raise when a domain retrieval is attempted but it does not exist"""
+  def __init__(self, domain: str) -> None:
+    self.message: str = f'Unrecognized domain {domain}'
+    super().__init__(self.message)
+
 class EmptyPipe(Exception):
   """Raise when the pipe should load data but did not"""
   def __init__(self) -> None:
@@ -35,10 +41,4 @@ class TableQualityNotRecognized(Exception):
   """Raise when the table quality is not recognized by system"""
   def __init__(self, quality: Any) -> None:
     self.message: str = f'Unrecognized table quality {quality}'
-    super().__init__(self.message)
-
-class DomainDoesNotExist(Exception):
-  """Raise when a domain retrieval is attempted but it does not exist"""
-  def __init__(self, domain: str) -> None:
-    self.message: str = f'Unrecognized domain {domain}'
     super().__init__(self.message)
