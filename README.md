@@ -89,6 +89,16 @@ poetry run pytest tests/ -vv -s
 
 Below are sample code snippets to show basic usage. For a full sample pipeline, consult the `sample` directory in the repository for an example pipeline. These tables, pipes, and pipeline get used in the integration test which is located in the `tests/integration/test_pipeline.py` pytest file.
 
+Below is a diagram of the basic pipeline architecture with these features:
+
+- The columns represent logical layers where data is stored.
+- The rows represent the two kinds of data within the metastore.
+- The pipes represent `PoltaPipe` objects.
+- The rectangles represent `PoltaTable` objects.
+- The rectangles with wavy bottom sides represent directories in the ingestion zone.
+
+![polta-diagram](assets/png/polta-data-flow-diagram.png)
+
 ## Sample Metastore
 
 The creation of a new metastore is simple. Below is a sample metastore that can be passed into the initialization of any `PoltaTable` to ensure the table writes to the metastore.
