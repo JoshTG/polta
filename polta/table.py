@@ -8,6 +8,7 @@ from polars.datatypes import DataType
 from shutil import rmtree
 from typing import Tuple, Union
 
+from polta.funcs import dedupe
 from polta.enums import TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
 from polta.maps import PoltaMaps
@@ -233,9 +234,7 @@ class PoltaTable:
 
     # Apply a simple deduplication if applicable        
     if partition_by and order_by:
-      df: DataFrame = df \
-        .sort(order_by, descending=order_by_descending) \
-        .unique(subset=partition_by, keep='first')
+      df: DataFrame = dedupe(df, partition_by, order_by, order_by_descending)
     
     # Apply a limit if applicable
     if limit:
