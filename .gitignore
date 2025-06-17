@@ -5,6 +5,7 @@
 # Test metastore files
 **/test_metastore/tables/
 **/test_metastore/volumes/state/
+**/test_metastore/volumes/exports/
 
 # Generated test/cache files
 .pytest_cache

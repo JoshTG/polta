@@ -121,7 +121,7 @@ from deltalake import Field, Schema
 
 from polta.enums import (
   DirectoryType,
-  LoadLogic,
+  WriteLogic,
   RawFileType,
   TableQuality
 )
@@ -150,7 +150,7 @@ ingester: PoltaIngester = PoltaIngester(
 
 pipe: PoltaPipe = PoltaPipe(
   table=table,
-  load_logic=LoadLogic.APPEND,
+  write_logic=WriteLogic.APPEND,
   ingester=ingester
 )
 ```
@@ -169,7 +169,7 @@ For instances where transformation logic is required, you must create a child `P
 from polars import col, DataFrame
 from polars.datatypes import DataType, List, Struct
 
-from polta.enums import LoadLogic
+from polta.enums import WriteLogic
 from polta.maps import PoltaMaps
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
@@ -181,7 +181,7 @@ from sample.table import \
 class SampleComplexPipe(PoltaPipe):
   """Pipe to load sample data into a conformed model"""
   def __init__(self, table: PoltaTable) -> None:
-    super().__init__(table, LoadLogic.APPEND)
+    super().__init__(table, WriteLogic.APPEND)
     self.raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
   

@@ -7,7 +7,7 @@ class TableQuality(Enum):
   CONFORMED = 'conformed'
   CANONICAL = 'canonical'
 
-class LoadLogic(Enum):
+class WriteLogic(Enum):
   """The method of saving data to a Delta Table"""
   APPEND = 'append'
   OVERWRITE = 'overwrite'
@@ -20,4 +20,9 @@ class DirectoryType(Enum):
 
 class RawFileType(Enum):
   """Format of raw files"""
+  JSON = 'json'
+
+class ExportFormat(Enum):
+  """Format of export files"""
+  CSV = 'csv'
   JSON = 'json'

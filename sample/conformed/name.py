@@ -2,7 +2,7 @@ from deltalake import Field, Schema
 
 from polta.enums import (
   DirectoryType,
-  LoadLogic,
+  WriteLogic,
   RawFileType,
   TableQuality
 )
@@ -30,7 +30,6 @@ ingester: PoltaIngester = PoltaIngester(
 )
 
 pipe: PoltaPipe = PoltaPipe(
-  table=table,
-  load_logic=LoadLogic.APPEND,
-  ingester=ingester
+  logic=ingester,
+  write_logic=WriteLogic.APPEND
 )

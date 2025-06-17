@@ -1,6 +1,6 @@
 from polars import DataFrame
 
-from polta.enums import LoadLogic
+from polta.enums import WriteLogic
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 from sample.conformed.name import \
@@ -12,7 +12,7 @@ from sample.conformed.activity import \
 class UserPipe(PoltaPipe):
   """Pipe to load user data into a canonical model"""
   def __init__(self, table: PoltaTable) -> None:
-    super().__init__(table, LoadLogic.UPSERT)
+    super().__init__(table, WriteLogic.UPSERT)
   
   def load_dfs(self) -> dict[str, DataFrame]:
     """Basic load logic:

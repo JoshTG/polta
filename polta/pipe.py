@@ -6,14 +6,16 @@ from polars import DataFrame
 from typing import Union
 from uuid import uuid4
 
-from polta.enums import LoadLogic, TableQuality
+from polta.enums import WriteLogic, TableQuality
 from polta.exceptions import (
   EmptyPipe,
   LoadLogicNotRecognized,
   TableQualityNotRecognized
 )
+from polta.exporter import PoltaExporter
 from polta.ingester import PoltaIngester
 from polta.table import PoltaTable
+from polta.transformer import PoltaTransformer
 
 
 @dataclass
@@ -29,54 +31,37 @@ class PoltaPipe:
   
   Args:
     table (PoltaTable): the destination Polta Table
-    load_logic (LoadLogic): how the data should be placed in target table
+    logic (Union[PoltaIngester, PoltaExporter, PoltaTransformer]): the pipe logic to handle data
+    write_logic (WriteLogic): how the data should be placed in target table
     strict (optional) (bool): indicates whether to fail on empty target DataFrame
   
   Initialized fields:
     dfs (dict[str, DataFrame]): the dependent DataFrames for the pipeline
   """
-  table: PoltaTable
-  load_logic: LoadLogic
-  ingester: Union[PoltaIngester, None] = field(default_factory=lambda: None)
+  logic: Union[PoltaExporter, PoltaIngester, PoltaTransformer]
+  write_logic: WriteLogic
   strict: bool = field(default_factory=lambda: False)
+  table: PoltaTable = field(init=False)
   dfs: dict[str, DataFrame] = field(init=False)
 
   def __post_init__(self) -> None:
+    self.table: PoltaTable = self.logic.table
     self.dfs: dict[str, DataFrame] = {}
 
   def execute(self) -> int:
-    """Executes the pipe"""
-    self.dfs: dict[str, DataFrame] = self.load_dfs()
-    if self.ingester:
-      self.dfs['raw'] = self.ingester.ingest()
-    df: DataFrame = self.transform()
+    """Executes the pipe
+    
+    Returns:
+      row_count (int): the number of records the pipeline wrote
+    """
+    self.dfs: dict[str, DataFrame] = self.logic.get_dfs()
+    df: DataFrame = self.logic.transform(self.dfs)
     df: DataFrame = self.add_metadata_columns(df)
     df: DataFrame = self.conform_schema(df)
     self.save(df)
+    self.logic.export(df)
     return df.shape[0]
   
-  def load_dfs(self) -> dict[str, DataFrame]:
-    """Loads dependent DataFrames
-    
-    This should be overriden by a child class
-    
-    Returns:
-      dfs (dict[str, DataFrame]): the dependent DataFrames
-    """
-    return {}
-
-  def transform(self) -> DataFrame:
-    """Transforms the dependent DataFrames into a pre-conformed DataFrame
-    
-    This should be overriden by a child class
-
-    Returns:
-      df (DataFrame): the transformed DataFrame
-    """
-    if self.ingester:
-      return self.dfs['raw']
-    return DataFrame([], self.table.schema_polars)
-
   def add_metadata_columns(self, df: DataFrame) -> DataFrame:
     """Adds relevant metadata columns to the DataFrame before loading
 
@@ -137,11 +122,11 @@ class PoltaPipe:
         raise EmptyPipe()
       return
 
-    if self.load_logic.value == LoadLogic.APPEND.value:
+    if self.write_logic.value == WriteLogic.APPEND.value:
       self.table.append(df)
-    elif self.load_logic.value == LoadLogic.OVERWRITE.value:
+    elif self.write_logic.value == WriteLogic.OVERWRITE.value:
       self.table.overwrite(df)
-    elif self.load_logic.value == LoadLogic.UPSERT.value:
+    elif self.write_logic.value == WriteLogic.UPSERT.value:
       self.table.upsert(df)
     else:
-      raise LoadLogicNotRecognized(self.load_logic)
+      raise LoadLogicNotRecognized(self.write_logic)

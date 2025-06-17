@@ -2,19 +2,17 @@ from polars import DataFrame
 from unittest import TestCase
 
 from polta.enums import DirectoryType
-from polta.ingester import PoltaIngester
 from sample.raw.activity import \
-  pipe as pp_raw_activity
+  ingester as pin_raw_activity
 from sample.conformed.name import \
-  pipe as pp_con_name
+  ingester as pin_con_name
 
 
 class TestIngest(TestCase):
   def test_simple_ingest(self) -> None:
-    ingester: PoltaIngester = pp_raw_activity.ingester
-    ingester.table.truncate()
-    assert ingester.simple_payload
-    df: DataFrame = ingester.ingest()
+    pin_raw_activity.table.truncate()
+    assert pin_raw_activity.simple_payload
+    df: DataFrame = pin_raw_activity.get_dfs()['source']
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 2
     assert '_raw_id' in df.columns
@@ -26,11 +24,10 @@ class TestIngest(TestCase):
     assert len(df.columns) == 6
 
   def test_json_ingest(self) -> None:
-    pp_con_name.table.truncate()
-    ingester: PoltaIngester = pp_con_name.ingester
-    assert ingester.directory_type.value == DirectoryType.DATED.value
-    assert not ingester.simple_payload
-    df: DataFrame = ingester.ingest()
+    pin_con_name.table.truncate()
+    assert pin_con_name.directory_type.value == DirectoryType.DATED.value
+    assert not pin_con_name.simple_payload
+    df: DataFrame = pin_con_name.get_dfs()['source']
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 3
     assert '_raw_id' in df.columns

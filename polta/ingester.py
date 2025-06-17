@@ -6,6 +6,7 @@ from deltalake import Field, Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
+from typing import Optional
 from uuid import uuid4
 
 from polta.enums import DirectoryType, RawFileType
@@ -39,13 +40,19 @@ class PoltaIngester:
       schema=Schema(self.metadata_schema + [self.payload_field])
     )
 
-  def ingest(self) -> DataFrame:
+  def get_dfs(self) -> dict[str, DataFrame]:
     """Ingests new files into the target table"""
     file_paths: list[str] = self._get_file_paths()
     metadata: list[RawMetadata] = [self._get_file_metadata(p) for p in file_paths]
     df: DataFrame = DataFrame(metadata, schema=self.payload_schema)
     df = self._filter_by_history(df)
-    return self._ingest_files(df)
+    return {'source': self._ingest_files(df)}
+
+  def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
+    return dfs['source']
+
+  def export(self, df: DataFrame) -> Optional[str]:
+    return None
 
   def _get_file_paths(self) -> list[str]:
     """Retrieves a list of file paths based on ingestion parameters
