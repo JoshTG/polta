@@ -4,7 +4,7 @@ _Data engineering tool combining Polars transformations with Delta tables/lakes.
 # Core Concepts
 The `polta` module revolves around the following core objects that, in conjunction with each other, allow you to create small-to-medium-scale pipelines.
 
-### PoltaMetastore
+## PoltaMetastore
 
 Every `polta` integration should have a dedicated metastore for preserving data and logs. This is automatically created and managed by `polta` before executing any transformations or reads.
 
@@ -23,13 +23,23 @@ It loosely follows the modern [Medallion Architecture](https://www.databricks.co
 
 If the data can be conformed easily, it may get loaded from the ingestion zone into _conformed_. Otherwise, it should get loaded into _raw_.
 
-### PoltaTable
+## PoltaTable
 
 The `PoltaTable` is the primary way to read and write data.
 
 It stores data using `deltalake`, and it transforms data using `polars`. Because it integrates two modules together, it has many fields and methods for communicating seamlessly to and fro. For example, every `PoltaTable` has readily available a `schema_polars` and `schema_deltalake` object that both represent your table schema.
 
 Each raw `PoltaTable` has a dedicated ingestion zone located in the `PoltaMetastore` to store sources files ready to be loaded into the raw layer.
+
+> In this repository, a `PoltaTable` alias is formatted as `pt_<quality-abbreviation>_<table-name>` (e.g., `pt_con_user`).
+
+## PoltaPipe
+
+The `PoltaPipe` is the primary way to transform data from one location to another in a new format.
+
+Currently, there are three kinds of supported pipes, each described below.
+
+> In this repository, a `PoltaPipe` alias is formatted as `pp_<quality-abbreviation>_<target-table-name>` (e.g., `pp_con_user`).
 
 ### PoltaIngester
 
@@ -42,13 +52,31 @@ It currently supports ingesting these formats:
 
 An instance can get passed into a `PoltaPipe` to ingest data into a `PoltaTable`.
 
-### PoltaPipe
+> In this repository, a `PoltaIngester` alias is formatted as `in_<quality-abbreviation>_<table-name>` (e.g., `in_con_user`).
 
-The `PoltaPipe` is the primary way to transform data from one location into a `PoltaTable`.
+### PoltaTransformer
 
-### PoltaPipeline
+The `PoltaTransformer` reads one or more `PoltaTable` objects from a layer, applies transformation logic, and writes the output into a target `PoltaTable`.
+
+> In this repository, a `PoltaTransformer` alias is formatted as `tr_<quality-abbreviation>_<table-name>` (e.g., `tr_con_user`).
+
+### PoltaExporter
+
+The `PoltaExporter` reads a `PoltaTable` and exports it in a desired format usually into an export directory within the `PoltaMetastore`.
+
+It currently supports exporting these formats:
+1. JSON
+2. CSV
+
+> In this repository, a `PoltaExporter` alias is formatted as `ex_<table-quality-abbreviation>_<table-name>` (e.g., `ex_can_user`).
+
+## PoltaPipeline
 
 The `PoltaPipeline` is the primary way to link `PoltaPipe` objects together to create a unified data pipeline.
+
+It takes in a list of raw, conformed, canonical, and export `PoltaPipe` objects and executes them sequentially.
+
+> In this repository, a `PoltaPipeline` alias is formatted as `ppl_<table-name>` (e.g., `ppl_user`).
 
 # Installation
 
@@ -110,7 +138,7 @@ from polta.metastore import PoltaMetastore
 metastore: PoltaMetastore = PoltaMetastore('path/to/desired/store')
 ```
 
-## Sample Simple PoltaPipe
+## Sample Ingester PoltaPipe
 
 This sample code illustrates a simple raw ingestion pipe.
 
@@ -121,7 +149,6 @@ from deltalake import Field, Schema
 
 from polta.enums import (
   DirectoryType,
-  WriteLogic,
   RawFileType,
   TableQuality
 )
@@ -148,11 +175,7 @@ ingester: PoltaIngester = PoltaIngester(
   raw_file_type=RawFileType.JSON
 )
 
-pipe: PoltaPipe = PoltaPipe(
-  table=table,
-  write_logic=WriteLogic.APPEND,
-  ingester=ingester
-)
+pipe: PoltaPipe = PoltaPipe(ingester)
 ```
 
 By making `table.raw_schema` a simple payload, that signals to the ingester that the transformation is a simple file read.
@@ -161,81 +184,24 @@ This code is all that is needed to execute a load of all data from the ingestion
 
 If you want to read the data, execute `table.get()`.
 
-## Sample Complex PoltaPipe
+## Sample Transformer PoltaPipe
 
-For instances where transformation logic is required, you must create a child `PoltaPipe` class that overrides the load and transform methods with your own custom code, as sampled below.
+For instances where transformation logic is required, you should use the `PoltaTransformer` class to transform data from one layer to another.
 
 ```python
+from deltalake import Field, Schema
 from polars import col, DataFrame
 from polars.datatypes import DataType, List, Struct
 
-from polta.enums import WriteLogic
+from polta.enums import TableQuality, WriteLogic
 from polta.maps import PoltaMaps
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
+from polta.transformer import PoltaTransformer
 from polta.udfs import string_to_struct
 from sample.table import \
   table as pt_raw_table
 
-
-class SampleComplexPipe(PoltaPipe):
-  """Pipe to load sample data into a conformed model"""
-  def __init__(self, table: PoltaTable) -> None:
-    super().__init__(table, WriteLogic.APPEND)
-    self.raw_polars_schema: dict[str, DataType] = PoltaMaps \
-      .deltalake_schema_to_polars_schema(self.table.raw_schema)
-  
-  def load_dfs(self) -> dict[str, DataFrame]:
-    """Basic load logic:
-      1. Get raw table data as a DataFrame
-      2. Anti join against conformed layer to get net-new records
-    
-    Returns:
-      dfs (dict[str, DataFrame]): The resulting data as 'table'
-    """
-    conformed_ids: DataFrame = self.table.get(select=['_raw_id'], unique=True)
-    df: DataFrame = (pt_raw_table
-      .get()
-      .join(conformed_ids, '_raw_id', 'anti')
-    )
-    return {'table': df}
-
-  def transform(self) -> DataFrame:
-    """Basic transformation logic:
-      1. Retrieve the raw table DataFrame
-      2. Convert 'payload' into a struct
-      3. Explode the struct
-      4. Convert the struct key-value pairs into column-cell values
-
-    Returns:
-      df (DataFrame): the resulting DataFrame
-    """
-    df: DataFrame = self.dfs['table']
-
-    return (df
-      .with_columns([
-        col('payload')
-          .map_elements(string_to_struct, return_dtype=List(Struct(self.raw_polars_schema)))
-      ])
-      .explode('payload')
-      .with_columns([
-        col('payload').struct.field(f).alias(f)
-        for f in [n.name for n in self.table.raw_schema.fields]
-      ])
-      .drop('payload')
-    )
-```
-
-This child class receives the raw data from the previous example, explodes the data, and extracts the proper fields into a proper conformed DataFrame.
-
-The `PoltaPipe` instance is sampled below.
-
-```python
-from deltalake import Field, Schema
-
-from polta.enums import TableQuality
-from polta.table import PoltaTable
-from .pipes.sample import SampleComplexPipe
 from .metastore import metastore
 
 
@@ -250,10 +216,65 @@ table: PoltaTable = PoltaTable(
   metastore=metastore
 )
 
-pipe: SampleComplexPipe = SampleComplexPipe(table)
+def get_dfs() -> dict[str, DataFrame]:
+  """Basic load logic:
+    1. Get raw table data as a DataFrame
+    2. Anti join against conformed layer to get net-new records
+  
+  Returns:
+    dfs (dict[str, DataFrame]): The resulting data as 'table'
+  """
+  conformed_ids: DataFrame = table.get(select=['_raw_id'], unique=True)
+  df: DataFrame = (pt_raw_table
+    .get()
+    .join(conformed_ids, '_raw_id', 'anti')
+  )
+  return {'table': df}
+
+def transform(dfs: dict[str, DataFrame]) -> DataFrame:
+  """Basic transformation logic:
+    1. Retrieve the raw table DataFrame
+    2. Convert 'payload' into a struct
+    3. Explode the struct
+    4. Convert the struct key-value pairs into column-cell values
+
+  Returns:
+    df (DataFrame): the resulting DataFrame
+  """
+  df: DataFrame = dfs['table']
+  raw_polars_schema: dict[str, DataType] = PoltaMaps \
+      .deltalake_schema_to_polars_schema(table.raw_schema)
+
+  return (df
+    .with_columns([
+      col('payload')
+        .map_elements(string_to_struct, return_dtype=List(Struct(raw_polars_schema)))
+    ])
+    .explode('payload')
+    .with_columns([
+      col('payload').struct.field(f).alias(f)
+      for f in [n.name for n in table.raw_schema.fields]
+    ])
+    .drop('payload')
+  )
+
+transformer: PoltaTransformer = PoltaTransformer(
+  table=table,
+  load_logic=get_dfs,
+  transform_logic=transform,
+  write_logic=WriteLogic.APPEND
+)
+
+pipe: PoltaPipe = PoltaPipe(transformer)
 ```
 
-From there, the pipe can be executed by running `pipe.execute()`, and any new raw files will get transformed and loaded into the conformed layer.
+This `PoltaTransformer` instance receives the raw data from the previous example, explodes the data, and extracts the proper fields into a proper conformed DataFrame.
+
+This one file contains every object in a modular format, which means you can import in another file any part of the pipe as needed.
+
+> This modular design also allows you to create integration and unit tests around your `load_logic` and `transform_logic` easily, as illustrated in the `tests/` directory.
+
+You can execute the `PoltaPipe` by running `pipe.execute()` wherever you want, and any new raw files will get transformed and loaded into the conformed layer.
 
 ## Sample PoltaPipeline
 

@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from deltalake import DeltaTable, Field, Schema, TableFeatures
-from os import getcwd, makedirs, path
+from os import makedirs, path
 from pathlib import Path
 from polars import DataFrame, read_delta
 from polars.datatypes import DataType
 from shutil import rmtree
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 from polta.enums import TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
@@ -25,7 +25,7 @@ class PoltaTable:
     name (str): the name of the table
     
   Optional Args:
-    raw_schema (Union[Schema, None]): a deltalake schema (default None)
+    raw_schema (Optional[Schema]): a deltalake schema (default None)
     metastore (PoltaMetastore): The metastore (default PoltaMetastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
@@ -41,7 +41,7 @@ class PoltaTable:
   domain: str
   quality: TableQuality
   name: str
-  raw_schema: Union[Schema, None] = field(default_factory=lambda: None)
+  raw_schema: Optional[Schema] = field(default_factory=lambda: None)
   metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
@@ -111,13 +111,13 @@ class PoltaTable:
     )   
 
   @staticmethod
-  def build_schemas_from_raw(quality: TableQuality, raw_schema: Union[Schema, None]) -> \
+  def build_schemas_from_raw(quality: TableQuality, raw_schema: Optional[Schema]) -> \
                         Tuple[Schema, dict[str, DataType]]:
     """Takes a raw deltalake schema and populates deltalake and polars schemas from it
     
     Args:
       quality (TableQuality): the quality of the table, to decide proper metadata
-      raw_schema (Union[Schema, None]): the raw schema, if applicable
+      raw_schema (Optional[Schema]): the raw schema, if applicable
     
     Returns:
       deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas

@@ -25,10 +25,8 @@ table: PoltaTable = PoltaTable(
 ingester: PoltaIngester = PoltaIngester(
   table=table,
   directory_type=DirectoryType.SHALLOW,
-  raw_file_type=RawFileType.JSON
+  raw_file_type=RawFileType.JSON,
+  write_logic=WriteLogic.APPEND
 )
 
-pipe: PoltaPipe = PoltaPipe(
-  logic=ingester,
-  write_logic=WriteLogic.APPEND,
-)
+pipe: PoltaPipe = PoltaPipe(ingester)

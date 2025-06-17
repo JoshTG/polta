@@ -14,7 +14,7 @@ from polars.datatypes import (
   List,
   String
 )
-from typing import Union
+from typing import Optional, Union
 
 from polta.exceptions import DataTypeNotRecognized
 
@@ -121,10 +121,10 @@ class PoltaMaps:
       if isinstance(data_type, Array):
         return Field(column, data_type.element_type)
       elif isinstance(data_type, List):
-        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
+        dt: Optional[str] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
         return Field(column, ArrayType(dt))
       else:
-        dt: Union[str, None] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type]
+        dt: Optional[str] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type]
         return Field(column, dt)
     except KeyError:
       raise DataTypeNotRecognized(data_type)

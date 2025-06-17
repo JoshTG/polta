@@ -62,10 +62,8 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
 transformer: PoltaTransformer = PoltaTransformer(
   table=table,
   load_logic=load_dfs,
-  transform_logic=transform
-)
-
-pipe: PoltaPipe = PoltaPipe(
-  logic=transformer,
+  transform_logic=transform,
   write_logic=WriteLogic.UPSERT
 )
+
+pipe: PoltaPipe = PoltaPipe(transformer)

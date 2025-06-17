@@ -5,7 +5,7 @@ from os import makedirs, path
 from polars import DataFrame
 from typing import Optional
 
-from polta.enums import ExportFormat
+from polta.enums import ExportFormat, WriteLogic
 from polta.table import PoltaTable
 
 
@@ -21,6 +21,8 @@ class PoltaExporter:
   table: PoltaTable
   export_format: ExportFormat
   export_directory: str = field(default_factory=lambda: '')
+  write_logic: Optional[WriteLogic] = field(init=False)
+  exported_files: list[str] = field(init=False)
 
   def __post_init__(self) -> None:
     self.export_directory: str = self.export_directory or path.join(
@@ -31,6 +33,8 @@ class PoltaExporter:
       self.table.name
     )
     makedirs(self.export_directory, exist_ok=True)
+    self.write_logic = None
+    self.exported_files: list[str] = []
 
   def get_dfs(self) -> dict[str, DataFrame]:
     """
@@ -60,6 +64,7 @@ class PoltaExporter:
       self._to_json(df, file_path)
     else:
       raise NotImplementedError()
+    self.exported_files.append(file_path)
     return file_path
 
   def _to_csv(self, df: DataFrame, file_path: str) -> None:

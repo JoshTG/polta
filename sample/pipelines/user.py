@@ -5,6 +5,8 @@ from sample.conformed.activity import \
   pipe as pp_con_activity
 from sample.conformed.name import \
   pipe as pp_con_name
+from sample.export.user import \
+  pipe as pp_exp_user
 from sample.raw.activity import \
   pipe as pp_raw_activity
 
@@ -12,5 +14,6 @@ from sample.raw.activity import \
 pipeline: PoltaPipeline = PoltaPipeline(
   raw_pipes=[pp_raw_activity],
   conformed_pipes=[pp_con_activity, pp_con_name],
-  canonical_pipes=[pp_can_user]
+  canonical_pipes=[pp_can_user],
+  export_pipes=[pp_exp_user]
 )

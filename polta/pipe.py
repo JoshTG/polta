@@ -3,14 +3,14 @@ import polars as pl
 from dataclasses import dataclass, field
 from datetime import datetime
 from polars import DataFrame
-from typing import Union
+from typing import Optional, Union
 from uuid import uuid4
 
 from polta.enums import WriteLogic, TableQuality
 from polta.exceptions import (
   EmptyPipe,
-  LoadLogicNotRecognized,
-  TableQualityNotRecognized
+  TableQualityNotRecognized,
+  WriteLogicNotRecognized
 )
 from polta.exporter import PoltaExporter
 from polta.ingester import PoltaIngester
@@ -39,14 +39,13 @@ class PoltaPipe:
     dfs (dict[str, DataFrame]): the dependent DataFrames for the pipeline
   """
   logic: Union[PoltaExporter, PoltaIngester, PoltaTransformer]
-  write_logic: WriteLogic
   strict: bool = field(default_factory=lambda: False)
+  write_logic: Optional[WriteLogic] = field(init=False)
   table: PoltaTable = field(init=False)
-  dfs: dict[str, DataFrame] = field(init=False)
 
   def __post_init__(self) -> None:
     self.table: PoltaTable = self.logic.table
-    self.dfs: dict[str, DataFrame] = {}
+    self.write_logic = self.logic.write_logic
 
   def execute(self) -> int:
     """Executes the pipe
@@ -54,12 +53,16 @@ class PoltaPipe:
     Returns:
       row_count (int): the number of records the pipeline wrote
     """
-    self.dfs: dict[str, DataFrame] = self.logic.get_dfs()
-    df: DataFrame = self.logic.transform(self.dfs)
+    dfs: dict[str, DataFrame] = self.logic.get_dfs()
+    df: DataFrame = self.logic.transform(dfs)
     df: DataFrame = self.add_metadata_columns(df)
     df: DataFrame = self.conform_schema(df)
-    self.save(df)
-    self.logic.export(df)
+
+    if isinstance(self.logic, (PoltaIngester, PoltaTransformer)):
+      self.save(df)
+    elif isinstance(self.logic, PoltaExporter):
+      self.logic.export(df)
+  
     return df.shape[0]
   
   def add_metadata_columns(self, df: DataFrame) -> DataFrame:
@@ -129,4 +132,4 @@ class PoltaPipe:
     elif self.write_logic.value == WriteLogic.UPSERT.value:
       self.table.upsert(df)
     else:
-      raise LoadLogicNotRecognized(self.write_logic)
+      raise WriteLogicNotRecognized(self.write_logic)

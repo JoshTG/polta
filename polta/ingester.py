@@ -9,7 +9,7 @@ from polars.datatypes import DataType, List, String, Struct
 from typing import Optional
 from uuid import uuid4
 
-from polta.enums import DirectoryType, RawFileType
+from polta.enums import DirectoryType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.maps import PoltaMaps
 from polta.table import PoltaTable
@@ -23,6 +23,7 @@ class PoltaIngester:
   table: PoltaTable
   directory_type: DirectoryType
   raw_file_type: RawFileType
+  write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
   raw_polars_schema: dict[str, DataType] = field(init=False)
   payload_field: Field = field(init=False)

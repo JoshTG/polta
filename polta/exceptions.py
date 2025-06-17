@@ -25,10 +25,10 @@ class EmptyPipe(Exception):
     self.message: str = f'Pipe executed in strict mode but did not load data'
     super().__init__(self.message)
 
-class LoadLogicNotRecognized(Exception):
-  """Raise when the load logic is not recognized by system"""
+class WriteLogicNotRecognized(Exception):
+  """Raise when the write logic is not recognized by system"""
   def __init__(self, write_logic: Any) -> None:
-    self.message: str = f'Unrecognized load logic {str(write_logic)}'
+    self.message: str = f'Unrecognized write logic {str(write_logic)}'
     super().__init__(self.message)
 
 class PoltaDataFormatNotRecognized(Exception):

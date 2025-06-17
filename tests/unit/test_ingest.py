@@ -3,16 +3,16 @@ from unittest import TestCase
 
 from polta.enums import DirectoryType
 from sample.raw.activity import \
-  ingester as pin_raw_activity
+  ingester as in_raw_activity
 from sample.conformed.name import \
-  ingester as pin_con_name
+  ingester as in_con_name
 
 
 class TestIngest(TestCase):
   def test_simple_ingest(self) -> None:
-    pin_raw_activity.table.truncate()
-    assert pin_raw_activity.simple_payload
-    df: DataFrame = pin_raw_activity.get_dfs()['source']
+    in_raw_activity.table.truncate()
+    assert in_raw_activity.simple_payload
+    df: DataFrame = in_raw_activity.get_dfs()['source']
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 2
     assert '_raw_id' in df.columns
@@ -24,10 +24,10 @@ class TestIngest(TestCase):
     assert len(df.columns) == 6
 
   def test_json_ingest(self) -> None:
-    pin_con_name.table.truncate()
-    assert pin_con_name.directory_type.value == DirectoryType.DATED.value
-    assert not pin_con_name.simple_payload
-    df: DataFrame = pin_con_name.get_dfs()['source']
+    in_con_name.table.truncate()
+    assert in_con_name.directory_type.value == DirectoryType.DATED.value
+    assert not in_con_name.simple_payload
+    df: DataFrame = in_con_name.get_dfs()['source']
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 3
     assert '_raw_id' in df.columns

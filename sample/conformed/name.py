@@ -2,7 +2,6 @@ from deltalake import Field, Schema
 
 from polta.enums import (
   DirectoryType,
-  WriteLogic,
   RawFileType,
   TableQuality
 )
@@ -29,7 +28,4 @@ ingester: PoltaIngester = PoltaIngester(
   raw_file_type=RawFileType.JSON
 )
 
-pipe: PoltaPipe = PoltaPipe(
-  logic=ingester,
-  write_logic=WriteLogic.APPEND
-)
+pipe: PoltaPipe = PoltaPipe(ingester)

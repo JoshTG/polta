@@ -1,3 +1,4 @@
+from os import path, remove
 from polars import DataFrame
 from unittest import TestCase
 
@@ -35,3 +36,10 @@ class TestPipeline(TestCase):
     assert df_activity_conformed.shape[0] == 3
     assert df_name.shape[0] == 3
     assert df_user.shape[0] == 3
+
+    # Assert export worked as expected
+    exported_files: list[str] = ppl_user.export_pipes[0].logic.exported_files
+    assert len(exported_files) == 1
+    assert path.exists(exported_files[0])
+    remove(exported_files[0])
+    exported_files.clear()
