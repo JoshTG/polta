@@ -133,6 +133,10 @@ class PoltaPipe:
     Args:
       df (DataFrame): the DataFrame to load
     """
+    self.table.create_if_not_exists(
+      table_path=self.table.table_path,
+      schema=self.table.schema_deltalake
+    )
     print(f'Loading {df.shape[0]} record(s) into {self.table.table_path}')
 
     if df.is_empty():
