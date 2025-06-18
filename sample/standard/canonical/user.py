@@ -31,15 +31,15 @@ def load_dfs() -> dict[str, DataFrame]:
   Returns:
     dfs (dict[str, DataFrame]): the resulting data as 'name' and 'activity'
   """
-  from sample.standard.conformed.name import table as pt_con_name
-  from sample.standard.conformed.activity import table as pt_con_activity
+  from sample.standard.conformed.name import table as tab_con_name
+  from sample.standard.conformed.activity import table as tab_con_activity
 
-  name_df: DataFrame = (pt_con_name
+  name_df: DataFrame = (tab_con_name
     .get()
     .sort('_file_path', '_file_mod_ts', descending=True)
     .unique(subset='id', keep='first')
   )
-  activity_df: DataFrame = (pt_con_activity
+  activity_df: DataFrame = (tab_con_activity
     .get()
     .sort('_file_path', '_file_mod_ts', descending=True)
     .unique(subset='id', keep='first')

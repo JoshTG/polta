@@ -6,9 +6,9 @@ from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 from polta.transformer import PoltaTransformer
 from sample.in_memory.conformed.activity import \
-  table as pt_con_activity
+  table as tab_con_activity
 from sample.in_memory.conformed.name import \
-  table as pt_con_name
+  table as tab_con_name
 from sample.metastore import metastore
 
 
@@ -35,8 +35,8 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
   Returns:
     df (DataFrame): the joined DataFrame
   """
-  return (dfs[pt_con_name.id]
-    .join(dfs[pt_con_activity.id], 'id', 'inner')
+  return (dfs[tab_con_name.id]
+    .join(dfs[tab_con_activity.id], 'id', 'inner')
   )
 
 transformer: PoltaTransformer = PoltaTransformer(

@@ -6,11 +6,11 @@ from polta.enums import TableQuality
 from polta.table import PoltaTable
 from sample.metastore import metastore
 from sample.standard.raw.activity import \
-  table as pt_raw_activity
+  table as tab_raw_activity
 
 
 class TestingData:
-  raw_table: PoltaTable = pt_raw_activity
+  raw_table: PoltaTable = tab_raw_activity
   table: PoltaTable = PoltaTable(
     domain='standard',
     quality=TableQuality.CANONICAL,

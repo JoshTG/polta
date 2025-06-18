@@ -4,7 +4,7 @@ from unittest import TestCase
 from polta.enums import TableQuality
 from polta.metastore import PoltaMetastore
 from sample.metastore import metastore
-from sample.standard.pipelines.user import pp_can_user
+from sample.standard.pipelines.user import pip_can_user
 from tests.unit.testing_data.metastore import TestingData
 
 
@@ -13,7 +13,7 @@ class TestMetastore(TestCase):
   td: TestingData = TestingData()
   pm: PoltaMetastore = metastore
   # Execute the pipeline to ensure tables exist
-  pp_can_user.execute()
+  pip_can_user.execute()
 
   def test_init(self) -> None:
     # Assert top-level directories were initialized

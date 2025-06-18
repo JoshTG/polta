@@ -30,10 +30,10 @@ def get_dfs() -> dict[str, DataFrame]:
   Returns:
     dfs (dict[str, DataFrame]): The resulting data as 'activity'
   """
-  from sample.standard.raw.activity import table as pt_raw_activity
+  from sample.standard.raw.activity import table as tab_raw_activity
 
   conformed_ids: DataFrame = table.get(select=['_raw_id'], unique=True)
-  df: DataFrame = (pt_raw_activity
+  df: DataFrame = (tab_raw_activity
     .get()
     .join(conformed_ids, '_raw_id', 'anti')
   )

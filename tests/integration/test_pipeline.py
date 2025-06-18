@@ -5,33 +5,33 @@ from unittest import TestCase
 from sample.in_memory.pipelines.user import \
   pipeline as ppl_in_memory_user
 from sample.standard.canonical.user import \
-  table as pt_can_user
+  table as tab_can_user
 from sample.standard.conformed.activity import \
-  table as pt_con_activity
+  table as tab_con_activity
 from sample.standard.conformed.name import \
-  table as pt_con_name
+  table as tab_con_name
 from sample.standard.pipelines.user import \
   pipeline as ppl_standard_user
 from sample.standard.raw.activity import \
-  table as pt_raw_activity
+  table as tab_raw_activity
 
 
 class TestPipeline(TestCase):
   def test_standard_pipeline(self) -> None:
     # Truncate tables first
-    pt_raw_activity.truncate()
-    pt_con_activity.truncate()
-    pt_con_name.truncate()
-    pt_can_user.truncate()
+    tab_raw_activity.truncate()
+    tab_con_activity.truncate()
+    tab_con_name.truncate()
+    tab_can_user.truncate()
 
     # Execute standard pipeline
     ppl_standard_user.execute()
 
     # Get resulting Delta Tables as DataFrames
-    df_activity_raw: DataFrame = pt_raw_activity.get()
-    df_activity_conformed: DataFrame = pt_con_activity.get()
-    df_name: DataFrame = pt_con_name.get()
-    df_user: DataFrame = pt_can_user.get()
+    df_activity_raw: DataFrame = tab_raw_activity.get()
+    df_activity_conformed: DataFrame = tab_con_activity.get()
+    df_name: DataFrame = tab_con_name.get()
+    df_user: DataFrame = tab_can_user.get()
 
     # Assert proper lengths
     assert df_activity_raw.shape[0] == 2

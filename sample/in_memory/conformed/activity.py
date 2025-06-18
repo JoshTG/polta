@@ -9,7 +9,7 @@ from polta.table import PoltaTable
 from polta.transformer import PoltaTransformer
 from polta.udfs import string_to_struct
 from sample.in_memory.raw.activity import \
-  table as pt_raw_activity
+  table as tab_raw_activity
 from sample.metastore import metastore
 
 
@@ -40,7 +40,7 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
   raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(table.raw_schema)
 
-  return (dfs[pt_raw_activity.id]
+  return (dfs[tab_raw_activity.id]
     .with_columns([
       col('payload')
         .map_elements(string_to_struct, return_dtype=List(Struct(raw_polars_schema)))
