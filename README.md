@@ -357,11 +357,11 @@ Below are the top-level packages with their licenses.
 
 | Package | Version | Purpose | License |
 | ------- | ------- | ------- | ------- |
-| [deltalake](https://github.com/delta-io/delta-rs) | 0.25.5 | Stores and reads data | Apache Software License (Apache-2.0) |
-| [ipykernel](https://github.com/ipython/ipykernel) | 6.29.5 | Creates Jupyter notebooks for ad hoc analytics | BSD-3-Clause License |
-| [polars](https://github.com/pola-rs/polars) | 1.30.0 | Executes DataFrame transformation | MIT License |
-| [pytest](https://github.com/pytest-dev/pytest) | 8.3.5 | Runs test cases for unit/integration testing | MIT License |
-| [tzdata](https://github.com/python/tzdata) | 2025.2 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
+| [deltalake](https://github.com/delta-io/delta-rs) | >=0.25.5, <1.0.0 | Stores and reads data | Apache Software License (Apache-2.0) |
+| [ipykernel](https://github.com/ipython/ipykernel) | >=6.29.5, <6.30.0 | Creates Jupyter notebooks for ad hoc analytics | BSD-3-Clause License |
+| [polars](https://github.com/pola-rs/polars) | >=1.30.0, <1.31.0 | Executes DataFrame transformation | MIT License |
+| [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit/integration testing | MIT License |
+| [tzdata](https://github.com/python/tzdata) | >=2025.2, <2026.1 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
 
 # Contributing
 
