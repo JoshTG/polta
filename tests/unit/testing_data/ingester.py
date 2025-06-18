@@ -13,7 +13,7 @@ class TestingData:
     'payload'
   ]
   dfs: dict[str, DataFrame] = {
-    'source': DataFrame([
+    'standard.raw.activity': DataFrame([
       {
         '_raw_id': '1',
         '_ingested_ts': datetime.now(UTC),

@@ -2,31 +2,30 @@ from deltalake import Field, Schema
 
 from polta.enums import (
   DirectoryType,
-  WriteLogic,
   RawFileType,
   TableQuality
 )
 from polta.ingester import PoltaIngester
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
-from sample.metastore import sample_metastore
+from sample.metastore import metastore
 
 
 table: PoltaTable = PoltaTable(
-  domain='test',
-  quality=TableQuality.RAW,
-  name='activity',
+  domain='in_memory',
+  quality=TableQuality.CONFORMED,
+  name='name',
   raw_schema=Schema([
-    Field('payload', 'string')
+    Field('id', 'string'),
+    Field('name', 'string')
   ]),
-  metastore=sample_metastore
+  metastore=metastore
 )
 
 ingester: PoltaIngester = PoltaIngester(
   table=table,
-  directory_type=DirectoryType.SHALLOW,
-  raw_file_type=RawFileType.JSON,
-  write_logic=WriteLogic.APPEND
+  directory_type=DirectoryType.DATED,
+  raw_file_type=RawFileType.JSON
 )
 
 pipe: PoltaPipe = PoltaPipe(ingester)

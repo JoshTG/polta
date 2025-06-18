@@ -1,8 +1,8 @@
 from polars import DataFrame
 from unittest import TestCase
 
-from sample.raw.activity import pipe as pp_raw_activity
-from sample.conformed.activity import pipe as pp_con_activity
+from sample.standard.raw.activity import pipe as pp_raw_activity
+from sample.standard.conformed.activity import pipe as pp_con_activity
 
 class TestPipe(TestCase):
   def test_ingester_pipe(self) -> None:
@@ -10,7 +10,7 @@ class TestPipe(TestCase):
     pp_raw_activity.table.truncate()
 
     # Execute raw pipe and ensure it loaded correctly
-    row_count: int = pp_raw_activity.execute()
+    row_count: int = pp_raw_activity.execute().shape[0]
     assert row_count == 2
   
   def test_transformer_pipe(self) -> None:
@@ -20,7 +20,7 @@ class TestPipe(TestCase):
 
     # Execute pipe and ensure it loaded correctly
     pp_con_activity.table.truncate()
-    row_count: int = pp_con_activity.execute()
+    row_count: int = pp_con_activity.execute().shape[0]
     assert row_count == 3
   
   def test_exporter_pipe(self) -> None:

@@ -2,9 +2,9 @@ from polars import DataFrame
 from unittest import TestCase
 
 from polta.transformer import PoltaTransformer
-from sample.conformed.activity import \
+from sample.standard.conformed.activity import \
   transformer as tr_con_activity
-from sample.raw.activity import table as pt_raw_activity
+from sample.standard.raw.activity import table as pt_raw_activity
 from tests.unit.testing_data.transformer import TestingData
 
 

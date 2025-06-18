@@ -1,13 +1,13 @@
 from polta.pipeline import PoltaPipeline
-from sample.canonical.user import \
+from sample.in_memory.canonical.user import \
   pipe as pp_can_user
-from sample.conformed.activity import \
+from sample.in_memory.conformed.activity import \
   pipe as pp_con_activity
-from sample.conformed.name import \
+from sample.in_memory.conformed.name import \
   pipe as pp_con_name
-from sample.export.user import \
+from sample.in_memory.export.user import \
   pipe as pp_exp_user
-from sample.raw.activity import \
+from sample.in_memory.raw.activity import \
   pipe as pp_raw_activity
 
 

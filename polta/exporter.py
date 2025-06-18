@@ -5,7 +5,7 @@ from os import makedirs, path
 from polars import DataFrame
 from typing import Optional
 
-from polta.enums import ExportFormat, WriteLogic
+from polta.enums import ExportFormat, PipeType, WriteLogic
 from polta.table import PoltaTable
 
 
@@ -21,6 +21,7 @@ class PoltaExporter:
   table: PoltaTable
   export_format: ExportFormat
   export_directory: str = field(default_factory=lambda: '')
+  pipe_type: PipeType = field(init=False)
   write_logic: Optional[WriteLogic] = field(init=False)
   exported_files: list[str] = field(init=False)
 
@@ -33,18 +34,23 @@ class PoltaExporter:
       self.table.name
     )
     makedirs(self.export_directory, exist_ok=True)
+    self.pipe_type: PipeType = PipeType.EXPORTER
     self.write_logic = None
     self.exported_files: list[str] = []
 
   def get_dfs(self) -> dict[str, DataFrame]:
+    """Retrieves the base DataFrame if possible, or it returns nothing
+
+    Returns:
+      dfs (dict[str, DataFrame]): the base DataFrame in a dict
     """
-    """
-    return {'table': self.table.get()}
+    df: DataFrame = self.table.get()
+    return {} if df.is_empty() else {self.table.id: df}
 
   def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
     """
     """
-    return dfs['table']
+    return dfs[self.table.id]
   
   def export(self, df: DataFrame) -> Optional[str]:
     """Exports the DataFrame to file storage

@@ -8,36 +8,24 @@ from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 from polta.transformer import PoltaTransformer
 from polta.udfs import string_to_struct
-from sample.metastore import sample_metastore
+from sample.in_memory.raw.activity import \
+  table as pt_raw_activity
+from sample.metastore import metastore
 
 
 table: PoltaTable = PoltaTable(
-  domain='test',
+  domain='in_memory',
   quality=TableQuality.CONFORMED,
   name='activity',
   raw_schema=Schema([
     Field('id', 'string'),
     Field('active_ind', 'boolean')
   ]),
-  metastore=sample_metastore
+  metastore=metastore
 )
 
 def get_dfs() -> dict[str, DataFrame]:
-  """Basic load logic:
-    1. Get raw activity data as a DataFrame
-    2. Anti join against conformed layer to get net-new records
-  
-  Returns:
-    dfs (dict[str, DataFrame]): The resulting data as 'activity'
-  """
-  from sample.raw.activity import table as pt_raw_activity
-
-  conformed_ids: DataFrame = table.get(select=['_raw_id'], unique=True)
-  df: DataFrame = (pt_raw_activity
-    .get()
-    .join(conformed_ids, '_raw_id', 'anti')
-  )
-  return {'activity': df}
+  return {}
 
 def transform(dfs: dict[str, DataFrame]) -> DataFrame:
   """Basic transformation logic:
@@ -52,7 +40,7 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
   raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(table.raw_schema)
 
-  return (dfs['activity']
+  return (dfs[pt_raw_activity.id]
     .with_columns([
       col('payload')
         .map_elements(string_to_struct, return_dtype=List(Struct(raw_polars_schema)))
@@ -68,8 +56,7 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
 transformer: PoltaTransformer = PoltaTransformer(
   table=table,
   load_logic=get_dfs,
-  transform_logic=transform,
-  write_logic=WriteLogic.APPEND
+  transform_logic=transform
 )
 
 pipe: PoltaPipe = PoltaPipe(transformer)

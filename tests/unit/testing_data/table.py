@@ -4,15 +4,15 @@ from typing import Any
 
 from polta.enums import TableQuality
 from polta.table import PoltaTable
-from sample.metastore import sample_metastore
-from sample.raw.activity import \
+from sample.metastore import metastore
+from sample.standard.raw.activity import \
   table as pt_raw_activity
 
 
 class TestingData:
   raw_table: PoltaTable = pt_raw_activity
   table: PoltaTable = PoltaTable(
-    domain='test',
+    domain='standard',
     quality=TableQuality.CANONICAL,
     name='test_table',
     raw_schema=Schema([
@@ -21,7 +21,7 @@ class TestingData:
       Field('active_ind', 'boolean')
     ]),
     primary_keys=['id', 'name'],
-    metastore=sample_metastore
+    metastore=metastore
   )
 
   expected_merge_predicate: str = 's.id = t.id AND s.name = t.name'

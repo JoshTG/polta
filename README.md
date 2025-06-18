@@ -1,8 +1,47 @@
 # Polta
 _Data engineering tool combining Polars transformations with Delta tables/lakes._
 
+![PyTest](https://github.com/JoshTG/polta/actions/workflows/run-pytest.yml/badge.svg) [![PyPI version](https://img.shields.io/pypi/v/polta.svg)](https://pypi.org/project/polta/)
+
 # Core Concepts
 The `polta` module revolves around the following core objects that, in conjunction with each other, allow you to create small-to-medium-scale pipelines.
+
+Throughout this README and in the repository's `sample` pipelines, various objects are aliased in a consistent manner when imported. Below is a table of such aliases for convenience.
+
+| Object             | Alias                              | Example           |
+| ------------------ | ---------------------------------- | ----------------- |
+| `PoltaTable`       | pt_<quality-prefix\>_<table-name\> | pt_raw_activity   |
+| `PoltaExporter`    | ex_<quality-prefix\>_<table-name\> | ex_can_user       | 
+| `PoltaIngester`    | in_<quality-prefix\>_<table-name\> | in_raw_activity   |
+| `PoltaTransformer` | tr_<quality-prefix\>_<table-name\> | tr_con_user       |
+| `PoltaPipe`        | pp_<quality-prefix\>_<table-name\> | pp_con_activity   |
+| `PoltaPipeline`    | ppl_<domain\>_<table-name\>        | ppl_standard_user |
+
+To illustrate, a `PoltaTable` is initially declared like this:
+
+```python
+# table.py
+from polta.enums import TableQuality
+from polta.table import PoltaTable
+
+
+table: PoltaTable = PoltaTable(
+  domain='standard',
+  quality=TableQuality.RAW,
+  name='test'
+)
+```
+
+Then, whenever it is imported from another file, it is aliased like this:
+```python
+# other-file.py
+from .table import table as pt_raw_test
+```
+
+The naming conventions are such for the following reasons:
+1. It keeps initial declarations simple.
+2. It allows importing multiple objects (e.g., `PoltaTable` and `PoltaPipe` objects) while avoiding variable collisions.
+3. It adds consistent and descriptive identifiers to the objects throughout the codebase.
 
 ## PoltaMetastore
 
@@ -20,6 +59,7 @@ It loosely follows the modern [Medallion Architecture](https://www.databricks.co
 1. *Raw*: Source data, usually a payload string.
 2. *Conformed*: Structured data.
 3. *Canonical*: Business-level data.
+4. *Export*: Cleaned, formatted export data.
 
 If the data can be conformed easily, it may get loaded from the ingestion zone into _conformed_. Otherwise, it should get loaded into _raw_.
 
@@ -76,10 +116,14 @@ The `PoltaPipeline` is the primary way to link `PoltaPipe` objects together to c
 
 It takes in a list of raw, conformed, canonical, and export `PoltaPipe` objects and executes them sequentially.
 
-> In this repository, a `PoltaPipeline` alias is formatted as `ppl_<table-name>` (e.g., `ppl_user`).
+There are two kinds of pipelines you can build:
+
+1. `Standard`: each step in the pipeline saves to `PoltaTable` objects in the metastore. During execution, pipes typically retrieve the current state of each of those `PoltaTable` objects and saves the output in the target `PoltaTable`. This allows a full end-to-end-pipeline that preserves all pipe outputs into the metastore for future usage.
+2. `In Memory`: each step in the pipeline preserves the `DataFrames` across layers and loads them into each subsequent pipe. This allows a full end-to-end pipeline that can export the results without reling on preserving the intermediate data in the metastore. 
+
+If you need to store each run over time, you should use a `Standard` pipeline. However, if you simply want to load a dataset, transform it, and export it into a format, just wanting to preserve that export, then you should use an `In Memory` pipeline. The `sample` directory contains pipelines for both kinds.
 
 # Installation
-
 
 ## Installing to a Project
 This project exists in `PyPI` and can be installed this way:
@@ -115,7 +159,7 @@ poetry run pytest tests/ -vv -s
 
 # Usage
 
-Below are sample code snippets to show basic usage. For a full sample pipeline, consult the `sample` directory in the repository for an example pipeline. These tables, pipes, and pipeline get used in the integration test which is located in the `tests/integration/test_pipeline.py` pytest file.
+Below are sample code snippets to show basic usage. For full sample pipelines, consult the `sample` directory in the repository. These tables, pipes, and pipeline get used in the integration test which is located in the `tests/integration/test_pipeline.py` pytest file.
 
 Below is a diagram of the basic pipeline architecture with these features:
 
@@ -123,7 +167,7 @@ Below is a diagram of the basic pipeline architecture with these features:
 - The rows represent the two kinds of data within the metastore.
 - The pipes represent `PoltaPipe` objects.
 - The rectangles represent `PoltaTable` objects.
-- The rectangles with wavy bottom sides represent directories in the ingestion zone.
+- The rectangles with wavy bottom sides represent directories in the metastore with various files.
 
 ![polta-diagram](assets/png/polta-data-flow-diagram.png)
 
@@ -199,7 +243,7 @@ from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 from polta.transformer import PoltaTransformer
 from polta.udfs import string_to_struct
-from sample.table import \
+from sample.standard.table import \
   table as pt_raw_table
 
 from .metastore import metastore
@@ -283,9 +327,9 @@ To connect the above pipes together, you can create a `PoltaPipeline`, as sample
 ```python
 from polta.pipeline import PoltaPipeline
 
-from sample.raw.table import \
+from sample.standard.raw.table import \
   pipe as pp_raw_sample
-from sample.conformed.table import \
+from sample.standard.conformed.table import \
   pipe as pp_con_sample
 
 
@@ -299,7 +343,25 @@ You can then execute your pipeline by running `pipeline.execute()`.
 
 # License
 
-This project exists under the `MIT License`. Consult the `LICENSE` file in this repository for more information on what that means.
+This project exists under the `MIT License`.
+
+## Acknowledgements
+
+The `polta` project uses third-party dependencies that use the following permissive open-source licenses:
+
+1. `Apache Software License (Apache-2.0)`
+2. `BSD-3-Clause License`
+3. `MIT License`
+
+Below are the top-level packages with their licenses.
+
+| Package | Version | Purpose | License |
+| ------- | ------- | ------- | ------- |
+| [deltalake](https://github.com/delta-io/delta-rs) | 0.25.5 | Stores and reads data | Apache Software License (Apache-2.0) |
+| [ipykernel](https://github.com/ipython/ipykernel) | 6.29.5 | Creates Jupyter notebooks for ad hoc analytics | BSD-3-Clause License |
+| [polars](https://github.com/pola-rs/polars) | 1.30.0 | Executes DataFrame transformation | MIT License |
+| [pytest](https://github.com/pytest-dev/pytest) | 8.3.5 | Runs test cases for unit/integration testing | MIT License |
+| [tzdata](https://github.com/python/tzdata) | 2025.2 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
 
 # Contributing
 
@@ -312,7 +374,7 @@ To contribute, follow these steps:
 3. Make the desired changes.
 4. Fully test the desired changes using the `unit` and `integration` test directories in the `tests` directory.
 5. Uptick the `poetry` project version appropriately using standard semantic versioning.
-6. Create a merge request into the `main` branch of the official `polta` project.
+6. Create a merge request into the `main` branch of the official `polta` project and assign it initially to @JoshTG.
 7. Once the merge request is approved and merged, an administrator will schedule a release cycle and deploy the changes using a new release tag.
 
 # Contact

@@ -30,40 +30,55 @@ class PoltaPipe:
     1. execute() -> executes the pipeline
   
   Args:
-    table (PoltaTable): the destination Polta Table
     logic (Union[PoltaIngester, PoltaExporter, PoltaTransformer]): the pipe logic to handle data
-    write_logic (WriteLogic): how the data should be placed in target table
     strict (optional) (bool): indicates whether to fail on empty target DataFrame
   
   Initialized fields:
-    dfs (dict[str, DataFrame]): the dependent DataFrames for the pipeline
+    table (PoltaTable): the destination Polta Table
+    write_logic (WriteLogic): how the data should be placed in target table
   """
   logic: Union[PoltaExporter, PoltaIngester, PoltaTransformer]
   strict: bool = field(default_factory=lambda: False)
-  write_logic: Optional[WriteLogic] = field(init=False)
+
+  id: str = field(init=False)
   table: PoltaTable = field(init=False)
+  write_logic: Optional[WriteLogic] = field(init=False)
 
   def __post_init__(self) -> None:
+    self.id: str = '.'.join([
+      'pp',
+      self.logic.pipe_type.value,
+      self.logic.table.id
+    ])
     self.table: PoltaTable = self.logic.table
     self.write_logic = self.logic.write_logic
 
-  def execute(self) -> int:
+  def execute(self, dfs: dict[str, DataFrame] = {},
+              in_memory: bool = False) -> DataFrame:
     """Executes the pipe
-    
-    Returns:
-      row_count (int): the number of records the pipeline wrote
-    """
-    dfs: dict[str, DataFrame] = self.logic.get_dfs()
-    df: DataFrame = self.logic.transform(dfs)
-    df: DataFrame = self.add_metadata_columns(df)
-    df: DataFrame = self.conform_schema(df)
 
-    if isinstance(self.logic, (PoltaIngester, PoltaTransformer)):
+    Args:
+      dfs (dict[str, DataFrame]): if applicable, source DataFrames (default {})
+      in_memory (bool): indicates whether to run without saving (default False)
+
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
+    dfs.update(self.logic.get_dfs())
+
+    if isinstance(self.logic, PoltaExporter) and in_memory:
+      df: DataFrame = dfs[self.table.id]
+    else:
+      df: DataFrame = self.logic.transform(dfs)
+      df: DataFrame = self.add_metadata_columns(df)
+      df: DataFrame = self.conform_schema(df)
+
+    if isinstance(self.logic, (PoltaIngester, PoltaTransformer)) and not in_memory:
       self.save(df)
-    elif isinstance(self.logic, PoltaExporter):
+    if isinstance(self.logic, PoltaExporter):
       self.logic.export(df)
-  
-    return df.shape[0]
+
+    return df
   
   def add_metadata_columns(self, df: DataFrame) -> DataFrame:
     """Adds relevant metadata columns to the DataFrame before loading

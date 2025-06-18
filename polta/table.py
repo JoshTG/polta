@@ -30,6 +30,7 @@ class PoltaTable:
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
   Initialized fields:
+    id (str): the unique identifier for the table
     table_path (str): the absolute path to the Polta Table in the metastore
     state_file_directory (str): the absolute path to the state files directory
     state_file_path (str): the absolute path to the Polta Table state file
@@ -45,6 +46,7 @@ class PoltaTable:
   metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
+  id: str = field(init=False)
   table_path: str = field(init=False)
   ingestion_zone_path: str = field(init=False)
   state_file_directory: str = field(init=False)
@@ -55,6 +57,11 @@ class PoltaTable:
   merge_predicate: str = field(init=False)
 
   def __post_init__(self) -> None:
+    self.id: str = '.'.join([
+      self.domain,
+      self.quality.value,
+      self.name
+    ])
     self.table_path: str = path.join(
       self.metastore.tables_directory,
       self.domain,
@@ -85,7 +92,6 @@ class PoltaTable:
       self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
-    PoltaTable.create_if_not_exists(self.table_path, self.schema_deltalake)
 
   @staticmethod
   def create_if_not_exists(table_path: str, schema: Schema) -> None:

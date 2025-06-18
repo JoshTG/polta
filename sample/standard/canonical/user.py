@@ -5,11 +5,11 @@ from polta.enums import TableQuality, WriteLogic
 from polta.pipe import PoltaPipe
 from polta.table import PoltaTable
 from polta.transformer import PoltaTransformer
-from sample.metastore import sample_metastore
+from sample.metastore import metastore
 
 
 table: PoltaTable = PoltaTable(
-  domain='test',
+  domain='standard',
   quality=TableQuality.CANONICAL,
   name='user',
   raw_schema=Schema([
@@ -18,7 +18,7 @@ table: PoltaTable = PoltaTable(
     Field('active_ind', 'boolean')
   ]),
   primary_keys=['id'],
-  metastore=sample_metastore
+  metastore=metastore
 )
 
 def load_dfs() -> dict[str, DataFrame]:
@@ -31,8 +31,8 @@ def load_dfs() -> dict[str, DataFrame]:
   Returns:
     dfs (dict[str, DataFrame]): the resulting data as 'name' and 'activity'
   """
-  from sample.conformed.name import table as pt_con_name
-  from sample.conformed.activity import table as pt_con_activity
+  from sample.standard.conformed.name import table as pt_con_name
+  from sample.standard.conformed.activity import table as pt_con_activity
 
   name_df: DataFrame = (pt_con_name
     .get()

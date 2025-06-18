@@ -2,7 +2,7 @@ from polars import DataFrame
 from unittest import TestCase
 
 from polta.ingester import PoltaIngester
-from sample.raw.activity import ingester
+from sample.standard.raw.activity import ingester
 from tests.unit.testing_data.ingester import TestingData
 
 
@@ -13,9 +13,9 @@ class TestIngester(TestCase):
   def test_get_dfs(self) -> None:
     dfs: dict[str, DataFrame] = self.pin.get_dfs()
     assert isinstance(dfs, dict)
-    assert list(dfs.keys()) == ['source']
-    assert dfs['source'].shape[0] == self.td.expected_row_count
-    assert dfs['source'].columns == self.td.expected_columns
+    assert list(dfs.keys()) == [self.pin.table.id]
+    assert dfs[self.pin.table.id].shape[0] == self.td.expected_row_count
+    assert dfs[self.pin.table.id].columns == self.td.expected_columns
 
   def test_transform(self) -> None:
     df: DataFrame = self.pin.transform(self.td.dfs)

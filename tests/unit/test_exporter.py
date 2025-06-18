@@ -2,7 +2,7 @@ from os import path, remove
 from polars import DataFrame
 from unittest import TestCase
 
-from sample.export.user import \
+from sample.standard.export.user import \
   exporter as ex_can_user
 
 
@@ -13,8 +13,8 @@ class TestExporter(TestCase):
 
     # Assert output is as expected
     assert isinstance(dfs, dict)
-    assert list(dfs.keys()) == ['table']
-    assert isinstance(dfs['table'], DataFrame)
+    assert list(dfs.keys()) == [ex_can_user.table.id]
+    assert isinstance(dfs[ex_can_user.table.id], DataFrame)
   
   def test_transform(self) -> None:
     # Retrieve dfs as a dependent

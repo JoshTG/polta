@@ -3,11 +3,11 @@ from unittest import TestCase
 
 from polta.pipe import PoltaPipe
 
-from sample.raw.activity import \
+from sample.standard.raw.activity import \
   pipe as pp_raw_activity
-from sample.conformed.activity import \
+from sample.standard.conformed.activity import \
   pipe as pp_con_activity
-from sample.export.user import \
+from sample.standard.export.user import \
   pipe as pp_can_user
 
 
@@ -17,7 +17,7 @@ class TestPipes(TestCase):
     pp_raw_activity.table.truncate()
 
     # Assert ingester pipe works as expected
-    row_count: int = pp_raw_activity.execute()
+    row_count: int = pp_raw_activity.execute().shape[0]
     assert row_count == 2
 
     # Post-assertion cleanup
@@ -29,7 +29,7 @@ class TestPipes(TestCase):
     pp_raw_activity.execute()
 
     # Assert transformer pipe works as expected
-    row_count: int = pp_con_activity.execute()
+    row_count: int = pp_con_activity.execute().shape[0]
     assert row_count == 3
 
     # Post-assertion cleanup

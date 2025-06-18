@@ -1,6 +1,26 @@
 from enum import Enum
 
 
+class DirectoryType(Enum):
+  """Ingestion type"""
+  SHALLOW = 'shallow'
+  DATED = 'dated'
+
+class ExportFormat(Enum):
+  """Format of export files"""
+  CSV = 'csv'
+  JSON = 'json'
+
+class PipeType(Enum):
+  """Type of Polta Pipe logic"""
+  EXPORTER = 'exporter'
+  INGESTER = 'ingester'
+  TRANSFORMER = 'transformer'
+
+class RawFileType(Enum):
+  """Format of raw files"""
+  JSON = 'json'
+
 class TableQuality(Enum):
   """The quality of the Delta Table"""
   RAW = 'raw'
@@ -12,17 +32,3 @@ class WriteLogic(Enum):
   APPEND = 'append'
   OVERWRITE = 'overwrite'
   UPSERT = 'upsert'
-
-class DirectoryType(Enum):
-  """Ingestion type"""
-  SHALLOW = 'shallow'
-  DATED = 'dated'
-
-class RawFileType(Enum):
-  """Format of raw files"""
-  JSON = 'json'
-
-class ExportFormat(Enum):
-  """Format of export files"""
-  CSV = 'csv'
-  JSON = 'json'

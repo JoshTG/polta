@@ -9,7 +9,7 @@ from polars.datatypes import DataType, List, String, Struct
 from typing import Optional
 from uuid import uuid4
 
-from polta.enums import DirectoryType, RawFileType, WriteLogic
+from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.maps import PoltaMaps
 from polta.table import PoltaTable
@@ -25,6 +25,7 @@ class PoltaIngester:
   raw_file_type: RawFileType
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
+  pipe_type: PipeType = field(init=False)
   raw_polars_schema: dict[str, DataType] = field(init=False)
   payload_field: Field = field(init=False)
   simple_payload: bool = field(init=False)
@@ -32,6 +33,7 @@ class PoltaIngester:
   payload_schema: dict[str, DataType] = field(init=False)
 
   def __post_init__(self) -> None:
+    self.pipe_type: PipeType = PipeType.INGESTER
     self.raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
     self.payload_field: Field = Field('payload', 'string')
@@ -47,10 +49,10 @@ class PoltaIngester:
     metadata: list[RawMetadata] = [self._get_file_metadata(p) for p in file_paths]
     df: DataFrame = DataFrame(metadata, schema=self.payload_schema)
     df = self._filter_by_history(df)
-    return {'source': self._ingest_files(df)}
+    return {self.table.id: self._ingest_files(df)}
 
   def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
-    return dfs['source']
+    return dfs[self.table.id]
 
   def export(self, df: DataFrame) -> Optional[str]:
     return None

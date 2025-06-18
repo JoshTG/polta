@@ -2,28 +2,30 @@ from os import path, remove
 from polars import DataFrame
 from unittest import TestCase
 
-from sample.canonical.user import \
+from sample.in_memory.pipelines.user import \
+  pipeline as ppl_in_memory_user
+from sample.standard.canonical.user import \
   table as pt_can_user
-from sample.conformed.activity import \
+from sample.standard.conformed.activity import \
   table as pt_con_activity
-from sample.conformed.name import \
+from sample.standard.conformed.name import \
   table as pt_con_name
-from sample.pipelines.user import \
-  pipeline as ppl_user
-from sample.raw.activity import \
+from sample.standard.pipelines.user import \
+  pipeline as ppl_standard_user
+from sample.standard.raw.activity import \
   table as pt_raw_activity
 
 
 class TestPipeline(TestCase):
-  def test_pipeline(self) -> None:
+  def test_standard_pipeline(self) -> None:
     # Truncate tables first
     pt_raw_activity.truncate()
     pt_con_activity.truncate()
     pt_con_name.truncate()
     pt_can_user.truncate()
 
-    # Execute pipeline
-    ppl_user.execute()
+    # Execute standard pipeline
+    ppl_standard_user.execute()
 
     # Get resulting Delta Tables as DataFrames
     df_activity_raw: DataFrame = pt_raw_activity.get()
@@ -38,7 +40,20 @@ class TestPipeline(TestCase):
     assert df_user.shape[0] == 3
 
     # Assert export worked as expected
-    exported_files: list[str] = ppl_user.export_pipes[0].logic.exported_files
+    exported_files: list[str] = ppl_standard_user \
+      .export_pipes[0].logic.exported_files
+    assert len(exported_files) == 1
+    assert path.exists(exported_files[0])
+    remove(exported_files[0])
+    exported_files.clear()
+
+  def test_in_memory_pipeline(self) -> None:
+    # Execute in-memory pipeline
+    ppl_in_memory_user.execute(in_memory=True)
+
+    # Assert export worked as expected
+    exported_files: list[str] = ppl_in_memory_user \
+      .export_pipes[0].logic.exported_files
     assert len(exported_files) == 1
     assert path.exists(exported_files[0])
     remove(exported_files[0])

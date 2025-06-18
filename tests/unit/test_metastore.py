@@ -3,15 +3,15 @@ from unittest import TestCase
 
 from polta.enums import TableQuality
 from polta.metastore import PoltaMetastore
-from sample.metastore import sample_metastore
-from sample.pipelines.user import pp_can_user
+from sample.metastore import metastore
+from sample.standard.pipelines.user import pp_can_user
 from tests.unit.testing_data.metastore import TestingData
 
 
 class TestMetastore(TestCase):
   # Retrieve test data and initialize the metastore
   td: TestingData = TestingData()
-  pm: PoltaMetastore = sample_metastore
+  pm: PoltaMetastore = metastore
   # Execute the pipeline to ensure tables exist
   pp_can_user.execute()
 
@@ -28,7 +28,7 @@ class TestMetastore(TestCase):
   
   def test_list_qualities(self) -> None:
     # Assert metastore can return the list of qualities
-    qualities: list[TableQuality] = self.pm.list_qualities(self.td.domains[0])
+    qualities: list[TableQuality] = self.pm.list_qualities(self.td.domains[1])
     assert sorted([q.value for q in qualities]) == \
       sorted([q.value for q in self.td.qualities])
   
