@@ -4,18 +4,18 @@ from unittest import TestCase
 
 from polta.enums import TableQuality
 from polta.exceptions import DomainDoesNotExist
-from polta.metastore import Metastore
+from polta.metastore import PoltaMetastore
 from sample.metastore import metastore, metastore_init
 from sample.standard.pipelines.user import pip_can_user
 from tests.unit.testing_data.metastore import TestingData
 
 
 class TestMetastore(TestCase):
-  """Tests the Metastore class"""
+  """Tests the PoltaMetastore class"""
   # Retrieve test data and initialize the metastore
   td: TestingData = TestingData()
-  pm: Metastore = metastore
-  pm_init: Metastore = metastore_init
+  pm: PoltaMetastore = metastore
+  pm_init: PoltaMetastore = metastore_init
   # Execute the pipeline to ensure tables exist
   pip_can_user.execute()
 

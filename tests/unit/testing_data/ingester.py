@@ -3,8 +3,8 @@ from deltalake import Field, Schema
 from polars import DataFrame
 
 from polta.enums import DirectoryType, RawFileType, TableQuality
-from polta.ingester import Ingester
-from polta.table import Table
+from polta.ingester import PoltaIngester
+from polta.table import PoltaTable
 from sample.metastore import metastore
 from sample.standard.raw.activity import \
   table as tab_raw_activity
@@ -40,7 +40,7 @@ class TestingData:
       }
     ])
   }
-  table: Table = Table(
+  table: PoltaTable = PoltaTable(
     domain='standard',
     quality=TableQuality.RAW,
     name='activity',
@@ -50,12 +50,12 @@ class TestingData:
     ]),
     metastore=metastore
   )
-  malformed_dt_ingester: Ingester = Ingester(
+  malformed_dt_ingester: PoltaIngester = PoltaIngester(
     table=tab_raw_activity,
     directory_type=RawFileType.JSON,
     raw_file_type=RawFileType.JSON
   )
-  malformed_rft_ingester: Ingester = Ingester(
+  malformed_rft_ingester: PoltaIngester = PoltaIngester(
     table=table,
     directory_type=DirectoryType.SHALLOW,
     raw_file_type=DirectoryType.SHALLOW

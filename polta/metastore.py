@@ -6,7 +6,7 @@ from polta.exceptions import DomainDoesNotExist
 
 
 @dataclass
-class Metastore:
+class PoltaMetastore:
   """Dataclass for managing Polta metastores
   
   Optional Args:

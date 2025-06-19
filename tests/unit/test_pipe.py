@@ -20,7 +20,7 @@ from tests.unit.testing_data.pipe import TestingData
 
 
 class TestPipe(TestCase):
-  """Tests the Pipe class via its three logic types"""
+  """Tests the PoltaPipe class via its three logic types"""
   td: TestingData = TestingData()
 
   def test_ingester_pipe(self) -> None:

@@ -1,7 +1,7 @@
 from polars import DataFrame
 from unittest import TestCase
 
-from polta.transformer import Transformer
+from polta.transformer import PoltaTransformer
 from sample.standard.conformed.activity import \
   transformer as tra_con_activity
 from sample.standard.raw.activity import table as tab_raw_activity
@@ -9,9 +9,9 @@ from tests.unit.testing_data.transformer import TestingData
 
 
 class TestTransformer(TestCase):
-  """Tests Transformer class"""
+  """Tests PoltaTransformer class"""
   td: TestingData = TestingData()
-  tr: Transformer = tra_con_activity
+  tr: PoltaTransformer = tra_con_activity
 
   def test_load_dfs(self) -> None:
     # Ensure source table is empty

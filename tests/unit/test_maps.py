@@ -4,13 +4,13 @@ from polars.datatypes import DataType
 from unittest import TestCase
 
 from polta.exceptions import DataTypeNotRecognized
-from polta.maps import Maps
+from polta.maps import PoltaMaps
 from tests.unit.testing_data.map import TestingData
 
 
 class TestMaps(TestCase):
-  """Tests the Maps class"""
-  polta_map: Maps = Maps()
+  """Tests the PoltaMaps class"""
+  polta_map: PoltaMaps = PoltaMaps()
   td: TestingData = TestingData()
 
   def test_polars_to_deltalake_map(self) -> None:
@@ -34,16 +34,16 @@ class TestMaps(TestCase):
 
     # Assert bad fields get the proper exception raised
     for bad_str in self.td.bad_polars_fields:
-      self.assertRaises(DataTypeNotRecognized, Maps.polars_field_to_deltalake_field, bad_str, bad_str)
+      self.assertRaises(DataTypeNotRecognized, PoltaMaps.polars_field_to_deltalake_field, bad_str, bad_str)
     for bad_str in self.td.bad_deltalake_fields:
-      self.assertRaises(DataTypeNotRecognized, Maps.deltalake_field_to_polars_field, bad_str)
+      self.assertRaises(DataTypeNotRecognized, PoltaMaps.deltalake_field_to_polars_field, bad_str)
 
   def test_deltalake_schema_to_polars_schema(self) -> None:
     # Assert a deltalake schema gets mapped properly
     assert self.td.expected_polars_schema == \
-      Maps.deltalake_schema_to_polars_schema(self.td.expected_deltalake_schema)
+      PoltaMaps.deltalake_schema_to_polars_schema(self.td.expected_deltalake_schema)
 
   def test_polars_schema_to_deltalake_schema(self) -> None:
     # Assert a polars schema gets mapped properly
     assert self.td.expected_deltalake_schema == \
-      Maps.polars_schema_to_deltalake_schema(self.td.expected_polars_schema)
+      PoltaMaps.polars_schema_to_deltalake_schema(self.td.expected_polars_schema)

@@ -6,13 +6,13 @@ from polta.enums import (
   RawFileType,
   TableQuality
 )
-from polta.ingester import Ingester
-from polta.pipe import Pipe
-from polta.table import Table
+from polta.ingester import PoltaIngester
+from polta.pipe import PoltaPipe
+from polta.table import PoltaTable
 from sample.metastore import metastore
 
 
-table: Table = Table(
+table: PoltaTable = PoltaTable(
   domain='standard',
   quality=TableQuality.RAW,
   name='activity',
@@ -22,11 +22,11 @@ table: Table = Table(
   metastore=metastore
 )
 
-ingester: Ingester = Ingester(
+ingester: PoltaIngester = PoltaIngester(
   table=table,
   directory_type=DirectoryType.SHALLOW,
   raw_file_type=RawFileType.JSON,
   write_logic=WriteLogic.APPEND
 )
 
-pipe: Pipe = Pipe(ingester)
+pipe: PoltaPipe = PoltaPipe(ingester)

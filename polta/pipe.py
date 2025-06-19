@@ -12,28 +12,28 @@ from polta.exceptions import (
   TableQualityNotRecognized,
   WriteLogicNotRecognized
 )
-from polta.exporter import Exporter
-from polta.ingester import Ingester
-from polta.table import Table
-from polta.transformer import Transformer
+from polta.exporter import PoltaExporter
+from polta.ingester import PoltaIngester
+from polta.table import PoltaTable
+from polta.transformer import PoltaTransformer
 
 
 @dataclass
-class Pipe:
+class PoltaPipe:
   """Changes and moves data in the metastore
   
   Positional Args:
-    logic (Union[Ingester, Exporter, Transformer]): the pipe logic to handle data
+    logic (Union[PoltaIngester, PoltaExporter, PoltaTransformer]): the pipe logic to handle data
   
   Initialized fields:
     id (str): the unique ID of the pipe for the pipeline
-    table (Table): the destination Polta Table
+    table (PoltaTable): the destination Polta Table
     write_logic (Optional[WriteLogic]): how the data should be placed in target table
   """
-  logic: Union[Exporter, Ingester, Transformer]
+  logic: Union[PoltaExporter, PoltaIngester, PoltaTransformer]
 
   id: str = field(init=False)
-  table: Table = field(init=False)
+  table: PoltaTable = field(init=False)
   write_logic: Optional[WriteLogic] = field(init=False)
 
   def __post_init__(self) -> None:
@@ -42,7 +42,7 @@ class Pipe:
       self.logic.pipe_type.value,
       self.logic.table.id
     ])
-    self.table: Table = self.logic.table
+    self.table: PoltaTable = self.logic.table
     self.write_logic = self.logic.write_logic
 
   def execute(self, dfs: dict[str, DataFrame] = {},
@@ -59,7 +59,7 @@ class Pipe:
     """
     dfs.update(self.logic.get_dfs())
 
-    if isinstance(self.logic, Exporter) and in_memory:
+    if isinstance(self.logic, PoltaExporter) and in_memory:
       df: DataFrame = dfs[self.table.id]
     else:
       df: DataFrame = self.logic.transform(dfs)
@@ -69,9 +69,9 @@ class Pipe:
     if strict and df.is_empty():
       raise EmptyPipe()
 
-    if isinstance(self.logic, (Ingester, Transformer)) and not in_memory:
+    if isinstance(self.logic, (PoltaIngester, PoltaTransformer)) and not in_memory:
       self.save(df)
-    if isinstance(self.logic, Exporter):
+    if isinstance(self.logic, PoltaExporter):
       self.logic.export(df)
 
     return df

@@ -11,18 +11,18 @@ from uuid import uuid4
 
 from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
-from polta.maps import Maps
-from polta.table import Table
+from polta.maps import PoltaMaps
+from polta.table import PoltaTable
 from polta.types import RawMetadata
 from polta.udfs import file_path_to_json, file_path_to_payload
 
 
 @dataclass
-class Ingester:
+class PoltaIngester:
   """Dataclass for ingesting files into the target table
   
   Positional Args:
-    table (Table): the target table for ingestion
+    table (PoltaTable): the target table for ingestion
     directory_type (DirectoryType): the kind of source directory to ingest
     raw_file_type (RawFileType): the format of the source files
   
@@ -37,7 +37,7 @@ class Ingester:
     metadata_schema (Schema): the deltalake fields for the raw layer
     payload_schema (dict[str, DataType]): the polars fields for a simple ingestion
   """
-  table: Table
+  table: PoltaTable
   directory_type: DirectoryType
   raw_file_type: RawFileType
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
@@ -51,12 +51,12 @@ class Ingester:
 
   def __post_init__(self) -> None:
     self.pipe_type: PipeType = PipeType.INGESTER
-    self.raw_polars_schema: dict[str, DataType] = Maps \
+    self.raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
     self.payload_field: Field = Field('payload', 'string')
     self.simple_payload: bool = self.table.raw_schema.fields == [self.payload_field]
-    self.metadata_schema: list[Field] = Maps.QUALITY_TO_METADATA_COLUMNS['raw']
-    self.payload_schema: dict[str, DataType] = Maps.deltalake_schema_to_polars_schema(
+    self.metadata_schema: list[Field] = PoltaMaps.QUALITY_TO_METADATA_COLUMNS['raw']
+    self.payload_schema: dict[str, DataType] = PoltaMaps.deltalake_schema_to_polars_schema(
       schema=Schema(self.metadata_schema + [self.payload_field])
     )
 

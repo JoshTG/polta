@@ -3,16 +3,16 @@ from polars import DataFrame
 from unittest import TestCase
 
 from polta.exceptions import DirectoryTypeNotRecognized
-from polta.ingester import Ingester
+from polta.ingester import PoltaIngester
 from sample.standard.raw.activity import \
   ingester as ing_raw_activity
 from tests.unit.testing_data.ingester import TestingData
 
 
 class TestIngester(TestCase):
-  """Tests the Ingester class"""
+  """Tests the PoltaIngester class"""
   td: TestingData = TestingData()
-  ing: Ingester = ing_raw_activity
+  ing: PoltaIngester = ing_raw_activity
 
   def test_get_dfs(self) -> None:
     # Retrieve the dfs from the ingester

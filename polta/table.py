@@ -10,13 +10,13 @@ from typing import Optional, Tuple, Union
 
 from polta.enums import TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
-from polta.maps import Maps
-from polta.metastore import Metastore
+from polta.maps import PoltaMaps
+from polta.metastore import PoltaMetastore
 from polta.types import RawPoltaData
 
 
 @dataclass
-class Table:
+class PoltaTable:
   """Stores all applicable information for a Polars + Delta Table dataset
   
   Positional Args:
@@ -26,7 +26,7 @@ class Table:
     
   Optional Args:
     raw_schema (Optional[Schema]): a deltalake schema (default None)
-    metastore (Metastore): The metastore (default Metastore())
+    metastore (PoltaMetastore): The metastore (default PoltaMetastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
   Initialized fields:
@@ -44,7 +44,7 @@ class Table:
   quality: TableQuality
   name: str
   raw_schema: Optional[Schema] = field(default_factory=lambda: None)
-  metastore: Metastore = field(default_factory=lambda: Metastore())
+  metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
   id: str = field(init=False)
@@ -90,7 +90,7 @@ class Table:
     self.columns: list[str] = list(self.schema_polars.keys())
 
     if self.primary_keys:
-      self.merge_predicate: list[str] = Table.build_merge_predicate(self.primary_keys)
+      self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
 
@@ -130,10 +130,10 @@ class Table:
     Returns:
       deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
     """
-    metadata_schema: Schema = Maps.QUALITY_TO_METADATA_COLUMNS[quality.value]
+    metadata_schema: Schema = PoltaMaps.QUALITY_TO_METADATA_COLUMNS[quality.value]
     fields: list[Field] = metadata_schema + (raw_schema.fields if raw_schema is not None else [])
     dl_schema: Schema = Schema(fields)
-    return dl_schema, Maps.deltalake_schema_to_polars_schema(dl_schema)
+    return dl_schema, PoltaMaps.deltalake_schema_to_polars_schema(dl_schema)
 
   @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:

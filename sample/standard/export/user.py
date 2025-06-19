@@ -1,13 +1,13 @@
 from polta.enums import ExportFormat
-from polta.exporter import Exporter
-from polta.pipe import Pipe
+from polta.exporter import PoltaExporter
+from polta.pipe import PoltaPipe
 
 from sample.standard.canonical.user import table
 
 
-exporter: Exporter = Exporter(
+exporter: PoltaExporter = PoltaExporter(
   table=table,
   export_format=ExportFormat.CSV
 )
 
-pipe: Pipe = Pipe(exporter)
+pipe: PoltaPipe = PoltaPipe(exporter)

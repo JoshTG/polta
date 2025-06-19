@@ -2,13 +2,13 @@ from deltalake import Field, Schema
 from polars import DataFrame
 
 from polta.enums import TableQuality, WriteLogic
-from polta.pipe import Pipe
-from polta.table import Table
-from polta.transformer import Transformer
+from polta.pipe import PoltaPipe
+from polta.table import PoltaTable
+from polta.transformer import PoltaTransformer
 from sample.metastore import metastore
 
 
-table: Table = Table(
+table: PoltaTable = PoltaTable(
   domain='standard',
   quality=TableQuality.CANONICAL,
   name='user',
@@ -59,11 +59,11 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
   """
   return dfs['name'].join(dfs['activity'], 'id', 'inner')
 
-transformer: Transformer = Transformer(
+transformer: PoltaTransformer = PoltaTransformer(
   table=table,
   load_logic=load_dfs,
   transform_logic=transform,
   write_logic=WriteLogic.UPSERT
 )
 
-pipe: Pipe = Pipe(transformer)
+pipe: PoltaPipe = PoltaPipe(transformer)

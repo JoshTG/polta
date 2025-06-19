@@ -10,7 +10,7 @@ from sample.standard.export.user import \
 
 
 class TestPipes(TestCase):
-  """Tests the Pipe logic"""
+  """Tests the PoltaPipe logic"""
   def test_ingester_pipe(self) -> None:
     # Pre-assertion cleanup
     pip_raw_activity.table.truncate()

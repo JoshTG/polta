@@ -7,15 +7,15 @@ from typing import Optional
 
 from polta.enums import ExportFormat, PipeType, WriteLogic
 from polta.serializers import json
-from polta.table import Table
+from polta.table import PoltaTable
 
 
 @dataclass
-class Exporter:
-  """Executes an export of a Table
+class PoltaExporter:
+  """Executes an export of a PoltaTable
   
   Positional Args:
-    table (Table): the main table for the export
+    table (PoltaTable): the main table for the export
     export_format (ExportFormat): how to save the data
   
   Optional Args:
@@ -26,7 +26,7 @@ class Exporter:
     write_logic (Optional[WriteLogic]): how to save the data (i.e., None)
     exported_files (list[str]): the path of the exported files
   """
-  table: Table
+  table: PoltaTable
   export_format: ExportFormat
   export_directory: str = field(default_factory=lambda: '')
 

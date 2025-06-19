@@ -3,25 +3,25 @@ from polars import DataFrame
 from typing import Optional
 
 from polta.enums import PipeType, WriteLogic
-from polta.table import Table
+from polta.table import PoltaTable
 
 
 @dataclass
-class Transformer:
-  """Contains transformation logic to be used in a Pipe
+class PoltaTransformer:
+  """Contains transformation logic to be used in a PoltaPipe
   
   Positional Args:
-    table (Table): the target Table
+    table (PoltaTable): the target PoltaTable
     load_logic (callable): a method to load the source DataFrames
     transform_logic (callable): a method to transform the DataFrames
   
   Optional Args:
-    write_logic (WriteLogic): how to write to a Table (default APPEND)
+    write_logic (WriteLogic): how to write to a PoltaTable (default APPEND)
   
   Initialized fields:
     pipe_type (PipeType): the type of pipe this is (i.e., TRANSFORMER)
   """
-  table: Table
+  table: PoltaTable
   load_logic: callable
   transform_logic: callable
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)

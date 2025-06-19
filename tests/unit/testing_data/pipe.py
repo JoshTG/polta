@@ -6,14 +6,14 @@ from polta.enums import (
   TableQuality,
   WriteLogic
 )
-from polta.ingester import Ingester
-from polta.pipe import Pipe
-from polta.table import Table
+from polta.ingester import PoltaIngester
+from polta.pipe import PoltaPipe
+from polta.table import PoltaTable
 from sample.metastore import metastore
 
 
 class TestingData:
-  table: Table = Table(
+  table: PoltaTable = PoltaTable(
     domain='standard',
     quality=TableQuality.RAW,
     name='activity',
@@ -22,17 +22,17 @@ class TestingData:
     ]),
     metastore=metastore
   )
-  overwrite_ingester: Ingester = Ingester(
+  overwrite_ingester: PoltaIngester = PoltaIngester(
     table=table,
     directory_type=DirectoryType.SHALLOW,
     raw_file_type=RawFileType.JSON,
     write_logic=WriteLogic.OVERWRITE
   )
-  overwrite_pipe: Pipe = Pipe(overwrite_ingester)
-  malformed_ingester: Ingester = Ingester(
+  overwrite_pipe: PoltaPipe = PoltaPipe(overwrite_ingester)
+  malformed_ingester: PoltaIngester = PoltaIngester(
     table=table,
     directory_type=DirectoryType.SHALLOW,
     raw_file_type=RawFileType.JSON,
     write_logic=DirectoryType.SHALLOW
   )
-  malformed_pipe: Pipe = Pipe(malformed_ingester)
+  malformed_pipe: PoltaPipe = PoltaPipe(malformed_ingester)

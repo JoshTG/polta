@@ -1,14 +1,14 @@
 from os import getcwd, path
 
-from polta.metastore import Metastore
+from polta.metastore import PoltaMetastore
 
 
 # To hold data for test cases
-metastore: Metastore = Metastore(
+metastore: PoltaMetastore = PoltaMetastore(
   main_path=path.join(getcwd(), 'sample', 'test_metastore')
 )
 
 # For destroying and rebuilding as needed
-metastore_init: Metastore = Metastore(
+metastore_init: PoltaMetastore = PoltaMetastore(
   main_path=path.join(getcwd(), 'sample', 'test_metastore_init')
 )

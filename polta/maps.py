@@ -19,7 +19,7 @@ from typing import Optional, Union
 from polta.exceptions import DataTypeNotRecognized
 
 
-class Maps:
+class PoltaMaps:
   """Contains various mapper fields and methods for Polta operations"""
   DELTALAKE_TO_POLARS_FIELD: dict[str, plDataType] = {
     'boolean': Boolean,
@@ -83,7 +83,7 @@ class Maps:
       wrap_in_list: bool = True
     if not isinstance(delta_field, str):
       raise TypeError('Error: delta_field must be of type <str> or <dict>')
-    dt: Union[plDataType, str] = Maps.DELTALAKE_TO_POLARS_FIELD.get(delta_field, '')
+    dt: Union[plDataType, str] = PoltaMaps.DELTALAKE_TO_POLARS_FIELD.get(delta_field, '')
     if isinstance(dt, str):
       raise DataTypeNotRecognized(dt)
     return List(dt) if wrap_in_list else dt
@@ -101,7 +101,7 @@ class Maps:
     polars_schema: dict[str, plDataType] = {}
 
     for field in loads(schema.to_json())['fields']:
-      polars_schema[field['name']] = Maps.deltalake_field_to_polars_field(field['type'])
+      polars_schema[field['name']] = PoltaMaps.deltalake_field_to_polars_field(field['type'])
       if field['type'] == 'timestamp':
         polars_schema[field['name']]
       
@@ -120,10 +120,10 @@ class Maps:
     """
     try:
       if isinstance(data_type, List):
-        dt: Optional[str] = Maps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
+        dt: Optional[str] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
         return Field(column, ArrayType(dt))
       else:
-        dt: Optional[str] = Maps.POLARS_TO_DELTALAKE_FIELD[data_type]
+        dt: Optional[str] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type]
         return Field(column, dt)
     except KeyError:
       raise DataTypeNotRecognized(data_type)
@@ -140,5 +140,5 @@ class Maps:
     """
     fields: list[plDataType] = []
     for column, data_type in schema.items():
-      fields.append(Maps.polars_field_to_deltalake_field(column, data_type))
+      fields.append(PoltaMaps.polars_field_to_deltalake_field(column, data_type))
     return Schema(fields)
