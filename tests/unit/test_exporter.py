@@ -6,7 +6,7 @@ from tests.unit.testing_data.exporter import TestingData
 
 
 class TestExporter(TestCase):
-  """Tests the PoltaExporter class"""
+  """Tests the Exporter class"""
   td: TestingData = TestingData()
 
   def test_get_dfs(self) -> None:

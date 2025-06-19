@@ -10,13 +10,13 @@ from typing import Optional, Tuple, Union
 
 from polta.enums import TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
-from polta.maps import PoltaMaps
-from polta.metastore import PoltaMetastore
+from polta.maps import Maps
+from polta.metastore import Metastore
 from polta.types import RawPoltaData
 
 
 @dataclass
-class PoltaTable:
+class Table:
   """Stores all applicable information for a Polars + Delta Table dataset
   
   Positional Args:
@@ -26,15 +26,15 @@ class PoltaTable:
     
   Optional Args:
     raw_schema (Optional[Schema]): a deltalake schema (default None)
-    metastore (PoltaMetastore): The metastore (default PoltaMetastore())
+    metastore (Metastore): The metastore (default Metastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
   Initialized fields:
     id (str): the unique identifier for the table
-    table_path (str): the absolute path to the Polta Table in the metastore
+    table_path (str): the absolute path to the Table in the metastore
     ingestion_zone_path (str): the path to the ingestion zone
     state_file_directory (str): the absolute path to the state files directory
-    state_file_path (str): the absolute path to the Polta Table state file
+    state_file_path (str): the absolute path to the Table state file
     schema_polars (dict[str, DataType]): the table schema as a Polars object
     schema_deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
@@ -44,7 +44,7 @@ class PoltaTable:
   quality: TableQuality
   name: str
   raw_schema: Optional[Schema] = field(default_factory=lambda: None)
-  metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
+  metastore: Metastore = field(default_factory=lambda: Metastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
   id: str = field(init=False)
@@ -90,7 +90,7 @@ class PoltaTable:
     self.columns: list[str] = list(self.schema_polars.keys())
 
     if self.primary_keys:
-      self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
+      self.merge_predicate: list[str] = Table.build_merge_predicate(self.primary_keys)
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
 
@@ -130,10 +130,10 @@ class PoltaTable:
     Returns:
       deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
     """
-    metadata_schema: Schema = PoltaMaps.QUALITY_TO_METADATA_COLUMNS[quality.value]
+    metadata_schema: Schema = Maps.QUALITY_TO_METADATA_COLUMNS[quality.value]
     fields: list[Field] = metadata_schema + (raw_schema.fields if raw_schema is not None else [])
     dl_schema: Schema = Schema(fields)
-    return dl_schema, PoltaMaps.deltalake_schema_to_polars_schema(dl_schema)
+    return dl_schema, Maps.deltalake_schema_to_polars_schema(dl_schema)
 
   @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:
@@ -175,7 +175,7 @@ class PoltaTable:
       rmtree(self.table_path)
     
   def get_as_delta_table(self) -> DeltaTable:
-    """Retrieves the DeltaTable object for the Polta Table
+    """Retrieves the DeltaTable object for the Table
     
     Returns:
       delta_table (DeltaTable): the resulting Delta Table
