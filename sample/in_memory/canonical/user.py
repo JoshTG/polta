@@ -2,9 +2,9 @@ from deltalake import Field, Schema
 from polars import DataFrame
 
 from polta.enums import TableQuality, WriteLogic
-from polta.pipe import PoltaPipe
-from polta.table import PoltaTable
-from polta.transformer import PoltaTransformer
+from polta.pipe import Pipe
+from polta.table import Table
+from polta.transformer import Transformer
 from sample.in_memory.conformed.activity import \
   table as tab_con_activity
 from sample.in_memory.conformed.name import \
@@ -12,7 +12,7 @@ from sample.in_memory.conformed.name import \
 from sample.metastore import metastore
 
 
-table: PoltaTable = PoltaTable(
+table: Table = Table(
   domain='in_memory',
   quality=TableQuality.CANONICAL,
   name='user',
@@ -39,10 +39,10 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
     .join(dfs[tab_con_activity.id], 'id', 'inner')
   )
 
-transformer: PoltaTransformer = PoltaTransformer(
+transformer: Transformer = Transformer(
   table=table,
   load_logic=load_dfs,
   transform_logic=transform
 )
 
-pipe: PoltaPipe = PoltaPipe(transformer)
+pipe: Pipe = Pipe(transformer)

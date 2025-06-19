@@ -4,12 +4,12 @@ from os import getcwd, path
 from typing import Any
 
 from polta.enums import TableQuality
-from polta.table import PoltaTable
+from polta.table import Table
 from sample.metastore import metastore
 
 
 class TestingData:
-  raw_table: PoltaTable = PoltaTable(
+  raw_table: Table = Table(
     domain='standard',
     quality=TableQuality.RAW,
     name='activity_test',
@@ -18,7 +18,7 @@ class TestingData:
     ]),
     metastore=metastore
   )
-  table: PoltaTable = PoltaTable(
+  table: Table = Table(
     domain='standard',
     quality=TableQuality.CANONICAL,
     name='test_table',

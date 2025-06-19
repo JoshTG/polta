@@ -10,34 +10,34 @@ Throughout this README and in the repository's `sample` pipelines, various objec
 
 ## At a Glance
 
-* A `PoltaMetastore` manages data in a uniform and consistent manner for `PoltaPipelines`.
-* A `PoltaPipeline` connects `PoltaPipes` together into a uniform execution plan.
-* Each `PoltaPipe` takes data from one location, transforms it, and saves it into another location. It does so in one of three ways:
-  * By ingesting source data via a `PoltaIngester`.
-  * By transforming data across layers via a `PoltaTransformer`.
-  * By exporting the data in a desired format via a `PoltaExporter`.
-* The data are managed in `PoltaTables`, which use `deltalake` and `polars` under the hood.
+* A `Metastore` manages data in a uniform and consistent manner for `Pipelines`.
+* A `Pipeline` connects `Pipes` together into a uniform execution plan.
+* Each `Pipe` takes data from one location, transforms it, and saves it into another location. It does so in one of three ways:
+  * By ingesting source data via a `Ingester`.
+  * By transforming data across layers via a `Transformer`.
+  * By exporting the data in a desired format via a `Exporter`.
+* The data are managed in `Tables`, which use `deltalake` and `polars` under the hood.
 
 ## Terminology
 
-| Object             | Alias                               | Example            |
-| ------------------ | ----------------------------------  | ------------------ |
-| `PoltaTable`       | tbl_<quality-prefix\>_<table-name\> | tbl_raw_activity   |
-| `PoltaExporter`    | exp_<quality-prefix\>_<table-name\> | exp_can_user       | 
-| `PoltaIngester`    | ing_<quality-prefix\>_<table-name\> | ing_raw_activity   |
-| `PoltaTransformer` | tra_<quality-prefix\>_<table-name\> | tra_con_user       |
-| `PoltaPipe`        | pip_<quality-prefix\>_<table-name\> | pip_con_activity   |
-| `PoltaPipeline`    | ppl_<domain\>_<table-name\>         | ppl_standard_user  |
+| Object        | Alias                               | Example            |
+| ------------- | ----------------------------------  | ------------------ |
+| `Table`       | tab_<quality-prefix\>_<table-name\> | tab_raw_activity   |
+| `Exporter`    | exp_<quality-prefix\>_<table-name\> | exp_can_user       | 
+| `Ingester`    | ing_<quality-prefix\>_<table-name\> | ing_raw_activity   |
+| `Transformer` | tra_<quality-prefix\>_<table-name\> | tra_con_user       |
+| `Pipe`        | pip_<quality-prefix\>_<table-name\> | pip_con_activity   |
+| `Pipeline`    | ppl_<domain\>_<table-name\>         | ppl_standard_user  |
 
-To illustrate, a `PoltaTable` is initially declared like this:
+To illustrate, a `Table` is initially declared like this:
 
 ```python
 # raw_table.py
 from polta.enums import TableQuality
-from polta.table import PoltaTable
+from polta.table import Table
 
 
-table: PoltaTable = PoltaTable(
+table: Table = Table(
   domain='standard',
   quality=TableQuality.RAW,
   name='test'
@@ -49,10 +49,10 @@ And another like this:
 ```python
 # conformed_table.py
 from polta.enums import TableQuality
-from polta.table import PoltaTable
+from polta.table import Table
 
 
-table: PoltaTable = PoltaTable(
+table: Table = Table(
   domain='standard',
   quality=TableQuality.CONFORMED,
   name='test'
@@ -70,16 +70,16 @@ from .conformed_table import table as tab_con_test
 
 The naming conventions are designed this way for the following reasons:
 1. It keeps initial declarations simple.
-2. It allows importing multiple objects (e.g., `PoltaTable` and `PoltaPipe` objects) while avoiding variable collisions.
+2. It allows importing multiple objects (e.g., `Table` and `Pipe` objects) while avoiding variable collisions.
 3. It adds consistent and descriptive identifiers to the objects throughout the codebase.
 
 > Feel free to name and organize your objects however you wish in your own repository. However, make sure you understand how this repository works to make the most sense out of the documentation and samples.
 
-## PoltaMetastore
+## Metastore
 
 Every `polta` integration should have a dedicated metastore for preserving data and logs. This is automatically created and managed by `polta` before executing any reads or writes.
 
-There are two main aspects of a `PoltaMetastore`:
+There are two main aspects of a `Metastore`:
 
 1. *Tables*: Contains every table across all layers.
 2. *Volumes*: Contains file storage systems needed for transformations.
@@ -93,56 +93,56 @@ This structure is inspired by `deltalake` and follows similar metastore paradigm
 
 If the data can be conformed easily, it may get loaded from the ingestion zone into _conformed_. Otherwise, it should get loaded into _raw_.
 
-## PoltaTable
+## Table
 
-The `PoltaTable` is the primary way to read and write data.
+The `Table` is the primary way to read and write data.
 
-It stores data using `deltalake`, and it transforms data using `polars`. Because it integrates two modules together, it has many fields and methods for communicating seamlessly to and fro. For example, every `PoltaTable` has readily available a `schema_polars` and `schema_deltalake` object that both represent your table schema.
+It stores data using `deltalake`, and it transforms data using `polars`. Because it integrates two modules together, it has many fields and methods for communicating seamlessly to and fro. For example, every `Table` has readily available a `schema_polars` and `schema_deltalake` object that both represent your table schema.
 
-Each raw `PoltaTable` has a dedicated ingestion zone located in the `PoltaMetastore` to store sources files ready to be loaded into the raw layer.
+Each raw `Table` has a dedicated ingestion zone located in the `Metastore` to store sources files ready to be loaded into the raw layer.
 
-> In this repository, a `PoltaTable` alias is formatted as `tab_<quality-abbreviation>_<table-name>` (e.g., `tab_con_user`).
+> In this repository, a `Table` alias is formatted as `tab_<quality-abbreviation>_<table-name>` (e.g., `tab_con_user`).
 
-## PoltaPipe
+## Pipe
 
-The `PoltaPipe` is the primary way to transform data from one location to another in a new format.
+The `Pipe` is the primary way to transform data from one location to another in a new format.
 
 Currently, there are three kinds of supported pipes, each described below.
 
-> In this repository, a `PoltaPipe` alias is formatted as `pip_<quality-abbreviation>_<target-table-name>` (e.g., `pip_con_user`).
+> In this repository, a `Pipe` alias is formatted as `pip_<quality-abbreviation>_<target-table-name>` (e.g., `pip_con_user`).
 
-### PoltaIngester
+### Ingester
 
-The `PoltaIngester` is the primary way to load source files into the raw layer.
+The `Ingester` is the primary way to load source files into the raw layer.
 
 It currently supports ingesting these formats:
 
 1. JSON
 2. String payload
 
-An instance can get passed into a `PoltaPipe` to ingest data into a `PoltaTable`.
+An instance can get passed into a `Pipe` to ingest data into a `Table`.
 
-### PoltaTransformer
+### Transformer
 
-The `PoltaTransformer` reads one or more `PoltaTable` objects from a layer, applies transformation logic, and writes the output into a target `PoltaTable`.
+The `Transformer` reads one or more `Table` objects from a layer, applies transformation logic, and writes the output into a target `Table`.
 
-### PoltaExporter
+### Exporter
 
-The `PoltaExporter` reads a `PoltaTable` and exports it in a desired format usually into an export directory within the `PoltaMetastore`.
+The `Exporter` reads a `Table` and exports it in a desired format usually into an export directory within the `Metastore`.
 
 It currently supports exporting these formats:
 1. JSON
 2. CSV
 
-## PoltaPipeline
+## Pipeline
 
-The `PoltaPipeline` is the primary way to link `PoltaPipe` objects together to create a unified data pipeline.
+The `Pipeline` is the primary way to link `Pipe` objects together to create a unified data pipeline.
 
-It takes in a list of raw, conformed, canonical, and export `PoltaPipe` objects and executes them sequentially.
+It takes in a list of raw, conformed, canonical, and export `Pipe` objects and executes them sequentially.
 
 There are two kinds of pipelines you can build:
 
-1. `Standard`: each step in the pipeline saves to `PoltaTable` objects in the metastore. During execution, pipes typically retrieve the current state of each of those `PoltaTable` objects and saves the output in the target `PoltaTable`. This allows a full end-to-end-pipeline that preserves all pipe outputs into the metastore for future usage.
+1. `Standard`: each step in the pipeline saves to `Table` objects in the metastore. During execution, pipes typically retrieve the current state of each of those `Table` objects and saves the output in the target `Table`. This allows a full end-to-end-pipeline that preserves all pipe outputs into the metastore for future usage.
 2. `In Memory`: each step in the pipeline preserves the `DataFrames` across layers and loads them into each subsequent pipe. This allows a full end-to-end pipeline that can export the results without reling on preserving the intermediate data in the metastore. 
 
 If you need to store each run over time, you should use a `Standard` pipeline. However, if you simply want to load a dataset, transform it, and export it into a format, just wanting to preserve that export, then you should use an `In Memory` pipeline. The `sample` directory contains pipelines for both kinds.
@@ -204,28 +204,28 @@ Below is a diagram of the basic pipeline architecture with these features:
 
 - The columns represent logical layers where data is stored.
 - The rows represent the two kinds of data within the metastore.
-- The pipes represent `PoltaPipe` objects.
-- The rectangles represent `PoltaTable` objects.
+- The pipes represent `Pipe` objects.
+- The rectangles represent `Table` objects.
 - The rectangles with wavy bottom sides represent directories in the metastore with various files.
 
 ![polta-diagram](assets/png/polta-data-flow-diagram.png)
 
 ## Sample Metastore
 
-The creation of a new metastore is simple. Below is a sample metastore that can be passed into the initialization of any `PoltaTable` to ensure the table writes to the metastore.
+The creation of a new metastore is simple. Below is a sample metastore that can be passed into the initialization of any `Table` to ensure the table writes to the metastore.
 
 ```python
-from polta.metastore import PoltaMetastore
+from polta.metastore import Metastore
 
 
-metastore: PoltaMetastore = PoltaMetastore('path/to/desired/store')
+metastore: Metastore = Metastore('path/to/desired/store')
 ```
 
-## Sample Ingester PoltaPipe
+## Sample Ingester Pipe
 
 This sample code illustrates a simple raw ingestion pipe.
 
-A pipe file typically contains a `PoltaTable` and a `PoltaPipe`, and a raw table might have an additional `PoltaIngester`.
+A pipe file typically contains a `Table` and a `Pipe`, and a raw table might have an additional `Ingester`.
 
 ```python
 from deltalake import Field, Schema
@@ -235,14 +235,14 @@ from polta.enums import (
   RawFileType,
   TableQuality
 )
-from polta.ingester import PoltaIngester
-from polta.pipe import PoltaPipe
-from polta.table import PoltaTable
+from polta.ingester import Ingester
+from polta.pipe import Pipe
+from polta.table import Table
 
 from .metastore import metastore
 
 
-table: PoltaTable = PoltaTable(
+table: Table = Table(
   domain='sample',
   quality=TableQuality.RAW,
   name='table',
@@ -252,13 +252,13 @@ table: PoltaTable = PoltaTable(
   metastore=metastore
 )
 
-ingester: PoltaIngester = PoltaIngester(
+ingester: Ingester = Ingester(
   table=table,
   directory_type=DirectoryType.SHALLOW,
   raw_file_type=RawFileType.JSON
 )
 
-pipe: PoltaPipe = PoltaPipe(ingester)
+pipe: Pipe = Pipe(ingester)
 ```
 
 By making `table.raw_schema` a simple payload, that signals to the ingester that the transformation is a simple file read.
@@ -267,9 +267,9 @@ This code is all that is needed to execute a load of all data from the ingestion
 
 If you want to read the data, execute `table.get()`.
 
-## Sample Transformer PoltaPipe
+## Sample Transformer Pipe
 
-For instances where transformation logic is required, you should use the `PoltaTransformer` class to transform data from one layer to another.
+For instances where transformation logic is required, you should use the `Transformer` class to transform data from one layer to another.
 
 ```python
 from deltalake import Field, Schema
@@ -277,10 +277,10 @@ from polars import col, DataFrame
 from polars.datatypes import DataType, List, Struct
 
 from polta.enums import TableQuality, WriteLogic
-from polta.maps import PoltaMaps
-from polta.pipe import PoltaPipe
-from polta.table import PoltaTable
-from polta.transformer import PoltaTransformer
+from polta.maps import Maps
+from polta.pipe import Pipe
+from polta.table import Table
+from polta.transformer import Transformer
 from polta.udfs import string_to_struct
 from sample.standard.table import \
   table as tab_raw_table
@@ -288,7 +288,7 @@ from sample.standard.table import \
 from .metastore import metastore
 
 
-table: PoltaTable = PoltaTable(
+table: Table = Table(
   domain='test',
   quality=TableQuality.CONFORMED,
   name='table',
@@ -325,7 +325,7 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
     df (DataFrame): the resulting DataFrame
   """
   df: DataFrame = dfs['table']
-  raw_polars_schema: dict[str, DataType] = PoltaMaps \
+  raw_polars_schema: dict[str, DataType] = Maps \
       .deltalake_schema_to_polars_schema(table.raw_schema)
 
   return (df
@@ -341,30 +341,30 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
     .drop('payload')
   )
 
-transformer: PoltaTransformer = PoltaTransformer(
+transformer: Transformer = Transformer(
   table=table,
   load_logic=get_dfs,
   transform_logic=transform,
   write_logic=WriteLogic.APPEND
 )
 
-pipe: PoltaPipe = PoltaPipe(transformer)
+pipe: Pipe = Pipe(transformer)
 ```
 
-This `PoltaTransformer` instance receives the raw data from the previous example, explodes the data, and extracts the proper fields into a proper conformed DataFrame.
+This `Transformer` instance receives the raw data from the previous example, explodes the data, and extracts the proper fields into a proper conformed DataFrame.
 
 This one file contains every object in a modular format, which means you can import in another file any part of the pipe as needed.
 
 > This modular design also allows you to create integration and unit tests around your `load_logic` and `transform_logic` easily, as illustrated in the `tests/` directory.
 
-You can execute the `PoltaPipe` by running `pipe.execute()` wherever you want, and any new raw files will get transformed and loaded into the conformed layer.
+You can execute the `Pipe` by running `pipe.execute()` wherever you want, and any new raw files will get transformed and loaded into the conformed layer.
 
-## Sample PoltaPipeline
+## Sample Pipeline
 
-To connect the above pipes together, you can create a `PoltaPipeline`, as sampled below.
+To connect the above pipes together, you can create a `Pipeline`, as sampled below.
 
 ```python
-from polta.pipeline import PoltaPipeline
+from polta.pipeline import Pipeline
 
 from sample.standard.raw.table import \
   pipe as pip_raw_sample
@@ -372,7 +372,7 @@ from sample.standard.conformed.table import \
   pipe as pip_con_sample
 
 
-pipeline: PoltaPipeline = PoltaPipeline(
+pipeline: Pipeline = Pipeline(
   raw_pipes=[pip_raw_sample],
   conformed_pipes=[pip_con_sample]
 )

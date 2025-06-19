@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from polars import DataFrame
 
-from polta.pipe import PoltaPipe
+from polta.pipe import Pipe
 
 
 @dataclass
-class PoltaPipeline:
+class Pipeline:
   """Simple dataclass for executing chains of pipes for an end product
 
   The pipe execution order:
@@ -15,15 +15,15 @@ class PoltaPipeline:
     4. Export
   
   Optional Args:
-    raw_pipes (list[PoltaPipe]): the raw pipes in the pipeline
-    conformed_pipes (list[PoltaPipe]): the conformed pipes in the pipeline
-    canonical_pipes (list[PoltaPipe]): the canonical pipes in the pipeline
-    export_pipes (list[PoltaPipe]): the export pipes in the pipeline
+    raw_pipes (list[Pipe]): the raw pipes in the pipeline
+    conformed_pipes (list[Pipe]): the conformed pipes in the pipeline
+    canonical_pipes (list[Pipe]): the canonical pipes in the pipeline
+    export_pipes (list[Pipe]): the export pipes in the pipeline
   """
-  raw_pipes: list[PoltaPipe] = field(default_factory=lambda: [])
-  conformed_pipes: list[PoltaPipe] = field(default_factory=lambda: [])
-  canonical_pipes: list[PoltaPipe] = field(default_factory=lambda: [])
-  export_pipes: list[PoltaPipe] = field(default_factory=lambda: [])
+  raw_pipes: list[Pipe] = field(default_factory=lambda: [])
+  conformed_pipes: list[Pipe] = field(default_factory=lambda: [])
+  canonical_pipes: list[Pipe] = field(default_factory=lambda: [])
+  export_pipes: list[Pipe] = field(default_factory=lambda: [])
 
   def execute(self, in_memory: bool = False, skip_exports: bool = False) -> None:
     """Executes all available pipes in order of layer

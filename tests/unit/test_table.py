@@ -7,12 +7,12 @@ from typing import Any
 from unittest import TestCase
 
 from polta.exceptions import PoltaDataFormatNotRecognized
-from polta.table import PoltaTable
+from polta.table import Table
 from tests.unit.testing_data.table import TestingData
 
 
 class TestTable(TestCase):
-  """Tests PoltaTable class"""
+  """Tests Table class"""
   td: TestingData = TestingData()
   empty_df: DataFrame = DataFrame([], td.table.schema_polars)
   df_1: DataFrame = DataFrame(td.input_dataset_1)
@@ -20,8 +20,8 @@ class TestTable(TestCase):
 
   def test_create_if_not_exists(self) -> None:
     # Assert method validates input types correctly
-    self.assertRaises(TypeError, PoltaTable.create_if_not_exists, 2, Schema([]))
-    self.assertRaises(TypeError, PoltaTable.create_if_not_exists, 'path', 2)
+    self.assertRaises(TypeError, Table.create_if_not_exists, 2, Schema([]))
+    self.assertRaises(TypeError, Table.create_if_not_exists, 'path', 2)
 
     # Clear table if it exists
     if path.exists(self.td.test_path):
@@ -29,7 +29,7 @@ class TestTable(TestCase):
     assert not path.exists(self.td.test_path)
 
     # Create table and ensure it exists
-    PoltaTable.create_if_not_exists(self.td.test_path, self.td.table.schema_deltalake)
+    Table.create_if_not_exists(self.td.test_path, self.td.table.schema_deltalake)
     assert path.exists(self.td.test_path)
     assert DeltaTable.is_deltatable(self.td.test_path)
 
