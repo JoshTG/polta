@@ -1,69 +1,82 @@
-from polars import col, DataFrame
-from typing import Any
+from os import path, remove
+from polars import DataFrame
 from unittest import TestCase
 
-from polta.pipe import PoltaPipe
-from tests.unit.testing_data.pipe import TestingData, PipeTest
+from polta.enums import RawFileType, TableQuality
+from polta.exceptions import (
+  EmptyPipe, 
+  TableQualityNotRecognized,
+  WriteLogicNotRecognized
+)
+from sample.standard.raw.activity import \
+  pipe as pip_raw_activity
+from sample.standard.canonical.user import \
+  table as tab_can_user
+from sample.standard.conformed.activity import \
+  pipe as pip_con_activity
+from sample.standard.export.user import \
+  pipe as pip_exp_user
+from tests.unit.testing_data.pipe import TestingData
 
 
 class TestPipe(TestCase):
+  """Tests the PoltaPipe class via its three logic types"""
   td: TestingData = TestingData()
-  pipeline: PoltaPipe = PipeTest()
-  df_1: DataFrame = DataFrame(td.df_1_rows)
-  df_2: DataFrame = DataFrame(td.df_2_rows)
 
-  def test_load_dfs(self) -> None:
-    dfs: dict[str, DataFrame] = self.pipeline.load_dfs()
-    # Assert dfs is the proper type and size
-    assert isinstance(dfs, dict)
-    assert len(dfs.keys()) == 2
+  def test_ingester_pipe(self) -> None:
+    # Clean up dependent table first
+    pip_raw_activity.table.truncate()
 
-    # Assert 'name' DataFrame is as expected
-    df_name: DataFrame = dfs.get('name')
-    assert isinstance(df_name, DataFrame)
-    assert df_name.shape[0] == 3
-    assert sorted(df_name.columns) == self.td.df_1_columns
+    # Execute raw pipe and assert it loaded correctly
+    df: DataFrame = pip_raw_activity.execute()
+    assert df.shape[0] == 2
 
-    # Assert 'activity' DataFrame is as expected
-    df_activity: DataFrame = dfs.get('activity')
-    assert isinstance(df_activity, DataFrame)
-    assert df_activity.shape[0] == 3
-    assert sorted(df_activity.columns) == self.td.df_2_columns
+    # Assert a malformed pipe fails to save
+    self.assertRaises(WriteLogicNotRecognized, self.td.malformed_pipe.save, df)
+
+    # Assert a malformed table fails to be conformed to a layer
+    self.td.malformed_pipe.table.quality = RawFileType.JSON
+    self.assertRaises(TableQualityNotRecognized, self.td.malformed_pipe.add_metadata_columns, df)
+    self.td.malformed_pipe.table.quality = TableQuality.RAW
+
+  def test_transformer_pipe(self) -> None:
+    # Clean up dependent table first
+    pip_raw_activity.table.truncate()
+    pip_raw_activity.execute()
+
+    # Execute pipe and assert it loaded correctly
+    pip_con_activity.table.truncate()
+    row_count: int = pip_con_activity.execute().shape[0]
+    assert row_count == 3
   
-  def test_transform(self) -> None:
-    # Assert transformation happens as expected
-    self.pipeline.dfs = self.pipeline.load_dfs()
-    df: DataFrame = self.pipeline.transform()
+  def test_exporter_pipe(self) -> None:
+    # Pre-assertion cleanup
+    pip_exp_user.logic.exported_files.clear()
+
+    # Execute export
+    pip_exp_user.logic.export(tab_can_user.get())
+
+    # Assert export worked as expected
+    assert len(pip_exp_user.logic.exported_files) > 0
+    for file_path in pip_exp_user.logic.exported_files:
+      assert path.exists(file_path)
+      remove(file_path)
+    
+    # Post-assertion cleanup
+    pip_exp_user.logic.exported_files.clear()
+
+  def test_strict_mode(self) -> None:
+    # Pre-assertion cleanup
+    pip_raw_activity.table.truncate()
+
+    # Run in strict mode and assert it raises an empty pipe error
+    self.assertRaises(EmptyPipe, pip_con_activity.execute, {}, False, True)
+
+  def test_overwrite_save(self) -> None:
+    # Pre-assertion cleanup
+    self.td.overwrite_pipe.table.truncate()
+    
+    # Run with overwrite and ensure it runs correctly
+    df: DataFrame = self.td.overwrite_pipe.execute()
     assert isinstance(df, DataFrame)
-    assert df.shape[0] == 3
-    assert sorted(df.columns) == self.td.tdf_columns
   
-  def test_save(self) -> None:
-    # Ensure table is empty before testing
-    self.pipeline.table.truncate()
-
-    # Retrieve transformation result and saves result
-    self.pipeline.dfs = self.pipeline.load_dfs()
-    df: DataFrame = self.pipeline.transform()
-    self.pipeline.save(df)
-
-    # Retrieve resulting DataFrame and test type, size, and columns
-    df_res: DataFrame = self.pipeline.table.get()
-    assert isinstance(df_res, DataFrame)
-    assert df_res.shape[0] == 3
-    assert sorted(df_res.columns) == self.td.tdf_columns
-
-    # Test IDs
-    rows: list[dict[str, Any]] = df_res.to_dicts()
-    ids: list[int] = [r['id'] for r in rows]
-    assert sorted(ids) == self.td.sdf_ids
-
-    # Test specific active_ind value
-    test_active_ind: bool = (df_res
-      .filter(col('id') == self.td.sdf_test_id)
-      .select('active_ind')
-      .to_dict(as_series=True)
-      .get('active_ind', [])
-      [-1]
-    )
-    assert test_active_ind == self.td.sdf_test_active_ind

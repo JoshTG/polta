@@ -25,12 +25,6 @@ class EmptyPipe(Exception):
     self.message: str = f'Pipe executed in strict mode but did not load data'
     super().__init__(self.message)
 
-class LoadLogicNotRecognized(Exception):
-  """Raise when the load logic is not recognized by system"""
-  def __init__(self, load_logic: Any) -> None:
-    self.message: str = f'Unrecognized load logic {str(load_logic)}'
-    super().__init__(self.message)
-
 class PoltaDataFormatNotRecognized(Exception):
   """Raise when the Polta data format is not recognized by system"""
   def __init__(self, format: type) -> None:
@@ -41,4 +35,10 @@ class TableQualityNotRecognized(Exception):
   """Raise when the table quality is not recognized by system"""
   def __init__(self, quality: Any) -> None:
     self.message: str = f'Unrecognized table quality {quality}'
+    super().__init__(self.message)
+
+class WriteLogicNotRecognized(Exception):
+  """Raise when the write logic is not recognized by system"""
+  def __init__(self, write_logic: Any) -> None:
+    self.message: str = f'Unrecognized write logic {str(write_logic)}'
     super().__init__(self.message)

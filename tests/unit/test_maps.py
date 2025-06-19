@@ -8,7 +8,8 @@ from polta.maps import PoltaMaps
 from tests.unit.testing_data.map import TestingData
 
 
-class TestMap(TestCase):
+class TestMaps(TestCase):
+  """Tests the PoltaMaps class"""
   polta_map: PoltaMaps = PoltaMaps()
   td: TestingData = TestingData()
 
@@ -27,10 +28,15 @@ class TestMap(TestCase):
       expected_pl_field: DataType = list(self.td.expected_polars_schema.values())[i]
       pl_field: DataType = self.polta_map.deltalake_field_to_polars_field(dl_field)
       assert pl_field == expected_pl_field
+    
+    # Assert deltalake field mapper fails as expected
+    self.assertRaises(TypeError, self.polta_map.deltalake_field_to_polars_field, 4)
 
     # Assert bad fields get the proper exception raised
     for bad_str in self.td.bad_polars_fields:
       self.assertRaises(DataTypeNotRecognized, PoltaMaps.polars_field_to_deltalake_field, bad_str, bad_str)
+    for bad_str in self.td.bad_deltalake_fields:
+      self.assertRaises(DataTypeNotRecognized, PoltaMaps.deltalake_field_to_polars_field, bad_str)
 
   def test_deltalake_schema_to_polars_schema(self) -> None:
     # Assert a deltalake schema gets mapped properly

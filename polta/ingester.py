@@ -6,9 +6,10 @@ from deltalake import Field, Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
+from typing import Optional
 from uuid import uuid4
 
-from polta.enums import DirectoryType, RawFileType
+from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.maps import PoltaMaps
 from polta.table import PoltaTable
@@ -18,11 +19,30 @@ from polta.udfs import file_path_to_json, file_path_to_payload
 
 @dataclass
 class PoltaIngester:
-  """Dataclass for ingesting files into the target table"""
+  """Dataclass for ingesting files into the target table
+  
+  Positional Args:
+    table (PoltaTable): the target table for ingestion
+    directory_type (DirectoryType): the kind of source directory to ingest
+    raw_file_type (RawFileType): the format of the source files
+  
+  Optional Args:
+    write_logic (WriteLogic): how to save the data (default APPEND)
+  
+  Initialized Fields:
+    pipe_type (PipeType): what kind of pipe this is (i.e., INGESTER)
+    raw_polars_schema (dict[str, DataType]): a polars version of the table's raw schema
+    payload_field (Field): the deltalake field of the payload column
+    simple_payload (bool): indicates whether the load is simple
+    metadata_schema (Schema): the deltalake fields for the raw layer
+    payload_schema (dict[str, DataType]): the polars fields for a simple ingestion
+  """
   table: PoltaTable
   directory_type: DirectoryType
   raw_file_type: RawFileType
+  write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
+  pipe_type: PipeType = field(init=False)
   raw_polars_schema: dict[str, DataType] = field(init=False)
   payload_field: Field = field(init=False)
   simple_payload: bool = field(init=False)
@@ -30,6 +50,7 @@ class PoltaIngester:
   payload_schema: dict[str, DataType] = field(init=False)
 
   def __post_init__(self) -> None:
+    self.pipe_type: PipeType = PipeType.INGESTER
     self.raw_polars_schema: dict[str, DataType] = PoltaMaps \
       .deltalake_schema_to_polars_schema(self.table.raw_schema)
     self.payload_field: Field = Field('payload', 'string')
@@ -39,13 +60,34 @@ class PoltaIngester:
       schema=Schema(self.metadata_schema + [self.payload_field])
     )
 
-  def ingest(self) -> DataFrame:
+  def get_dfs(self) -> dict[str, DataFrame]:
     """Ingests new files into the target table"""
     file_paths: list[str] = self._get_file_paths()
     metadata: list[RawMetadata] = [self._get_file_metadata(p) for p in file_paths]
     df: DataFrame = DataFrame(metadata, schema=self.payload_schema)
     df = self._filter_by_history(df)
-    return self._ingest_files(df)
+    return {self.table.id: self._ingest_files(df)}
+
+  def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
+    """Returns the target table DataFrame from dfs
+    
+    Args:
+      dfs (dict[str, DataFrame]): the DataFrames to transform
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
+    return dfs[self.table.id]
+
+  def export(self, df: DataFrame) -> Optional[str]:
+    """Exports the DataFrame in a desired format
+
+    This method is unused for ingesters
+
+    Args:
+      df (DataFrame): the DataFrame to export
+    """
+    return None
 
   def _get_file_paths(self) -> list[str]:
     """Retrieves a list of file paths based on ingestion parameters

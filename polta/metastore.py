@@ -7,7 +7,15 @@ from polta.exceptions import DomainDoesNotExist
 
 @dataclass
 class PoltaMetastore:
-  """Dataclass for managing Polta metastores"""
+  """Dataclass for managing Polta metastores
+  
+  Optional Args:
+    main_path (str): the directory of the metastore (default CWD + 'metastore')
+
+  Initialized Fields:
+    tables_directory (str): the path to the tables
+    volumes_directory (str): the path to the volumes
+  """
   main_path: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
   tables_directory: str = field(init=False)
   volumes_directory: str = field(init=False)

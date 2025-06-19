@@ -1,18 +1,40 @@
 from datetime import datetime, timedelta
-from deltalake import DeltaTable
+from deltalake import DeltaTable, Schema
 from os import path, remove
 from polars import DataFrame
+from shutil import rmtree
 from typing import Any
 from unittest import TestCase
 
+from polta.exceptions import PoltaDataFormatNotRecognized
+from polta.table import PoltaTable
 from tests.unit.testing_data.table import TestingData
 
 
 class TestTable(TestCase):
+  """Tests PoltaTable class"""
   td: TestingData = TestingData()
   empty_df: DataFrame = DataFrame([], td.table.schema_polars)
   df_1: DataFrame = DataFrame(td.input_dataset_1)
   df_2: DataFrame = DataFrame(td.input_dataset_2)
+
+  def test_create_if_not_exists(self) -> None:
+    # Assert method validates input types correctly
+    self.assertRaises(TypeError, PoltaTable.create_if_not_exists, 2, Schema([]))
+    self.assertRaises(TypeError, PoltaTable.create_if_not_exists, 'path', 2)
+
+    # Clear table if it exists
+    if path.exists(self.td.test_path):
+      rmtree(self.td.test_path)
+    assert not path.exists(self.td.test_path)
+
+    # Create table and ensure it exists
+    PoltaTable.create_if_not_exists(self.td.test_path, self.td.table.schema_deltalake)
+    assert path.exists(self.td.test_path)
+    assert DeltaTable.is_deltatable(self.td.test_path)
+
+    # Post-assertion cleanup
+    rmtree(self.td.test_path)
 
   def test_build_merge_predicate(self) -> None:
     # Assert table initialization created the merge predicate as expected
@@ -35,8 +57,79 @@ class TestTable(TestCase):
     df: DataFrame = self.td.table.get()
     assert isinstance(df, DataFrame)
     assert df.is_empty()
-  
+
+    # Check filter_conditions validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(filter_conditions=4)
+    self.assertEqual(te.exception.args[0], self.td.filter_conditions_msg)
+    # Check partition_by validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(partition_by=4)
+    self.assertEqual(te.exception.args[0], self.td.partition_by_msg)
+    # Check order_by validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(order_by=4)
+    self.assertEqual(te.exception.args[0], self.td.order_by_msg)
+    # Check order_by_descending validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(order_by_descending=4)
+    self.assertEqual(te.exception.args[0], self.td.order_by_descending_msg)
+    # Check select validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(select=4)
+    self.assertEqual(te.exception.args[0], self.td.select_msg)
+    # Check sort_by validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(sort_by=4)
+    self.assertEqual(te.exception.args[0], self.td.sort_by_msg)
+    # Check limit validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(limit='4')
+    self.assertEqual(te.exception.args[0], self.td.limit_msg)
+    # Check unique validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(unique=4)
+    self.assertEqual(te.exception.args[0], self.td.unique_msg)
+    # Check partition_by item validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(partition_by=['id', 4])
+    self.assertEqual(te.exception.args[0], self.td.partition_by_item_msg)
+    # Check order_by item validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(order_by=['id', 4])
+    self.assertEqual(te.exception.args[0], self.td.order_by_item_msg)
+    # Check select item validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(select=['id', 4])
+    self.assertEqual(te.exception.args[0], self.td.select_item_msg)
+    # Check sort_by item validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(sort_by=['id', 4])
+    self.assertEqual(te.exception.args[0], self.td.sort_by_item_msg)
+
+    # Assert table gets created if it does not exist
+    self.td.table.drop()
+    assert not DeltaTable.is_deltatable(self.td.table.table_path)
+    self.td.table.get()
+    assert DeltaTable.is_deltatable(self.td.table.table_path)
+
+    # Assert deduplication feature works
+    df: DataFrame = self.td.table.get(partition_by=['id'], order_by=['name'], order_by_descending=False)
+    assert isinstance(df, DataFrame)
+
+    # Assert limit feature works
+    df: DataFrame = self.td.table.get(limit=4)
+    assert isinstance(df, DataFrame)
+    assert df.shape[0] < 5
+
+    # Assert sort_by feature works
+    df: DataFrame = self.td.table.get(sort_by=['id'])
+    assert isinstance(df, DataFrame)
+
   def test_enforce_dataframe(self) -> None:
+    # Assert bad data fails
+    self.assertRaises(PoltaDataFormatNotRecognized, self.td.table.enforce_dataframe, 4)
+
     # Assert dict object works
     df: DataFrame = self.td.table.enforce_dataframe(self.td.input_dataset_1[0])
     assert isinstance(df, DataFrame)
@@ -62,9 +155,17 @@ class TestTable(TestCase):
     self.td.table.touch_state_file()
     assert path.exists(self.td.table.state_file_path)
 
+    # Assert it works even if directory does not exist
+    rmtree(self.td.table.state_file_directory)
+    self.td.table.touch_state_file()
+    assert path.exists(self.td.table.state_file_path)
+
   def test_ingestion_zone_directory(self) -> None:
+    # Remove ingestion zone path first
+    rmtree(self.td.raw_table.ingestion_zone_path)
+
     # Assert a raw table enforces ingestion volume creation
-    self.td.raw_table.get()
+    self.td.raw_table._build_ingestion_zone_if_not_exists()
     assert path.exists(self.td.raw_table.ingestion_zone_path)
 
   def test_get_last_modified_datetime(self) -> None:
@@ -159,6 +260,9 @@ class TestTable(TestCase):
       )
     assert active_ind_df_2.shape[0] == 1
 
+    # Assert validation checks work as expected
+    self.assertRaises(ValueError, self.td.raw_table.upsert, self.df_1)
+    
   def test_get_as_delta_table(self) -> None:
     # Assert Delta Table retrieval works
     delta_table: DeltaTable = self.td.table.get_as_delta_table()
@@ -171,3 +275,8 @@ class TestTable(TestCase):
     # Assert drop worked
     self.td.table.drop()
     #assert not path.exists(self.td.table.table_path)
+
+  def test_build_ingestion_zone(self) -> None:
+    # Run ingestion zone method
+    self.td.table._build_ingestion_zone_if_not_exists()
+    assert path.exists(self.td.table.ingestion_zone_path)

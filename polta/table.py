@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from deltalake import DeltaTable, Field, Schema, TableFeatures
-from os import getcwd, makedirs, path
+from os import makedirs, path
 from pathlib import Path
 from polars import DataFrame, read_delta
 from polars.datatypes import DataType
 from shutil import rmtree
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 from polta.enums import TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
@@ -17,7 +17,7 @@ from polta.types import RawPoltaData
 
 @dataclass
 class PoltaTable:
-  """Class to store all applicable information for a Polars + Delta Table
+  """Stores all applicable information for a Polars + Delta Table dataset
   
   Positional Args:
     domain (str): the kind of data this table contains
@@ -25,12 +25,14 @@ class PoltaTable:
     name (str): the name of the table
     
   Optional Args:
-    raw_schema (Union[Schema, None]): a deltalake schema (default None)
+    raw_schema (Optional[Schema]): a deltalake schema (default None)
     metastore (PoltaMetastore): The metastore (default PoltaMetastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
   
   Initialized fields:
+    id (str): the unique identifier for the table
     table_path (str): the absolute path to the Polta Table in the metastore
+    ingestion_zone_path (str): the path to the ingestion zone
     state_file_directory (str): the absolute path to the state files directory
     state_file_path (str): the absolute path to the Polta Table state file
     schema_polars (dict[str, DataType]): the table schema as a Polars object
@@ -41,10 +43,11 @@ class PoltaTable:
   domain: str
   quality: TableQuality
   name: str
-  raw_schema: Union[Schema, None] = field(default_factory=lambda: None)
+  raw_schema: Optional[Schema] = field(default_factory=lambda: None)
   metastore: PoltaMetastore = field(default_factory=lambda: PoltaMetastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
 
+  id: str = field(init=False)
   table_path: str = field(init=False)
   ingestion_zone_path: str = field(init=False)
   state_file_directory: str = field(init=False)
@@ -55,6 +58,11 @@ class PoltaTable:
   merge_predicate: str = field(init=False)
 
   def __post_init__(self) -> None:
+    self.id: str = '.'.join([
+      self.domain,
+      self.quality.value,
+      self.name
+    ])
     self.table_path: str = path.join(
       self.metastore.tables_directory,
       self.domain,
@@ -85,7 +93,6 @@ class PoltaTable:
       self.merge_predicate: list[str] = PoltaTable.build_merge_predicate(self.primary_keys)
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
-    PoltaTable.create_if_not_exists(self.table_path, self.schema_deltalake)
 
   @staticmethod
   def create_if_not_exists(table_path: str, schema: Schema) -> None:
@@ -100,10 +107,11 @@ class PoltaTable:
     if not isinstance(schema, Schema):
       raise TypeError('Error: schema must be of type <Schema>')
 
-    # If the Delta Table does not exist yet, create it with the expected schema             
-    if not DeltaTable.is_deltatable(table_path):
-      makedirs(table_path, exist_ok=True)
+    # If it exists already, return
+    if DeltaTable.is_deltatable(table_path):
+      return
 
+    makedirs(table_path, exist_ok=True)
     dt: DeltaTable = DeltaTable.create(table_path, schema, mode='ignore')
     dt.alter.add_feature(
       feature=TableFeatures.TimestampWithoutTimezone,
@@ -111,13 +119,13 @@ class PoltaTable:
     )   
 
   @staticmethod
-  def build_schemas_from_raw(quality: TableQuality, raw_schema: Union[Schema, None]) -> \
+  def build_schemas_from_raw(quality: TableQuality, raw_schema: Optional[Schema]) -> \
                         Tuple[Schema, dict[str, DataType]]:
     """Takes a raw deltalake schema and populates deltalake and polars schemas from it
     
     Args:
       quality (TableQuality): the quality of the table, to decide proper metadata
-      raw_schema (Union[Schema, None]): the raw schema, if applicable
+      raw_schema (Optional[Schema]): the raw schema, if applicable
     
     Returns:
       deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
@@ -199,6 +207,8 @@ class PoltaTable:
       raise TypeError('Error: partition_by must be of type <list>')
     if not isinstance(order_by, list):
       raise TypeError('Error: order_by must be of type <list>')
+    if not isinstance(order_by_descending, bool):
+      raise TypeError('Error: order_by_descending must be of type <bool>')
     if not isinstance(select, list):
       raise TypeError('Error: select must be of type <list>')
     if not isinstance(sort_by, list):
@@ -208,18 +218,17 @@ class PoltaTable:
     if not isinstance(unique, bool):
       raise TypeError('Error: unique must be of type <bool>')
     if not all(isinstance(c, str) for c in partition_by):
-      raise ValueError('Error: all values in partition_by must be of type <str>')
+      raise TypeError('Error: all values in partition_by must be of type <str>')
     if not all(isinstance(c, str) for c in order_by):
-      raise ValueError('Error: all values in order_by must be of type <str>')
+      raise TypeError('Error: all values in order_by must be of type <str>')
     if not all(isinstance(c, str) for c in select):
-      raise ValueError('Error: all values in select must be of type <str>')
+      raise TypeError('Error: all values in select must be of type <str>')
     if not all(isinstance(c, str) for c in sort_by):
-      raise ValueError('Error: all values in sort_by must be of type <str>')
+      raise TypeError('Error: all values in sort_by must be of type <str>')
 
     # Create the Delta Table if it does not exist
-    if not path.exists(self.table_path):
-      self.create_if_not_exists(self.table_path, self.schema_deltalake)
-        
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Retrieve Delta Table as a Polars DataFrame
     df: DataFrame = read_delta(self.table_path)
 
@@ -261,8 +270,9 @@ class PoltaTable:
     """
     if not self.primary_keys:
       raise ValueError('Error: Delta Table does not have primary keys')
-    if not self.merge_predicate:
-      raise ValueError('Error: merge predicate did not initialize')
+
+    # Ensure table exists first
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
 
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
@@ -291,6 +301,9 @@ class PoltaTable:
     Args:
       data (RawPoltaData): the data with which to overwrite
     """
+    # Ensure table exists first
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
 
@@ -305,7 +318,10 @@ class PoltaTable:
 
     Args:
       data (RawPoltaData): the data with which to append
-    """    
+    """
+    # Ensure table exists first
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
 
