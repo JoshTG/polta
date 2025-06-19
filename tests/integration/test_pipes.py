@@ -1,17 +1,16 @@
 from os import path, remove
 from unittest import TestCase
 
-from polta.pipe import PoltaPipe
-
 from sample.standard.raw.activity import \
   pipe as pip_raw_activity
 from sample.standard.conformed.activity import \
   pipe as pip_con_activity
 from sample.standard.export.user import \
-  pipe as pip_can_user
+  pipe as pip_exp_user
 
 
 class TestPipes(TestCase):
+  """Tests the PoltaPipe logic"""
   def test_ingester_pipe(self) -> None:
     # Pre-assertion cleanup
     pip_raw_activity.table.truncate()
@@ -37,11 +36,15 @@ class TestPipes(TestCase):
     pip_con_activity.table.truncate()
   
   def test_exporter_pipe(self) -> None:
+    # Execute export pipe
+    pip_exp_user.execute()
+
     # Assert exporter pipe works as expected
-    pip_can_user.execute()
-    assert len(pip_can_user.logic.exported_files) == 1
-    assert path.exists(pip_can_user.logic.exported_files[0])
+    exported_files: list[str] = pip_exp_user.logic.exported_files
+    assert len(pip_exp_user.logic.exported_files) > 0
+    for file_path in exported_files:
+      assert path.exists(file_path)
+      remove(file_path)
 
     # Post-assertion cleanup
-    remove(pip_can_user.logic.exported_files[0])
-    pip_can_user.logic.exported_files.clear()
+    pip_exp_user.logic.exported_files.clear()

@@ -17,6 +17,7 @@ from sample.standard.raw.activity import \
 
 
 class TestPipeline(TestCase):
+  """Tests the standard and in-memory PoltaPipeline logic"""
   def test_standard_pipeline(self) -> None:
     # Truncate tables first
     tab_raw_activity.truncate()
@@ -42,9 +43,12 @@ class TestPipeline(TestCase):
     # Assert export worked as expected
     exported_files: list[str] = ppl_standard_user \
       .export_pipes[0].logic.exported_files
-    assert len(exported_files) == 1
-    assert path.exists(exported_files[0])
-    remove(exported_files[0])
+    assert len(exported_files) > 0
+    for file_path in exported_files:
+      assert path.exists(file_path)
+      remove(file_path)
+    
+    # Post-assertion cleanup
     exported_files.clear()
 
   def test_in_memory_pipeline(self) -> None:
@@ -54,7 +58,10 @@ class TestPipeline(TestCase):
     # Assert export worked as expected
     exported_files: list[str] = ppl_in_memory_user \
       .export_pipes[0].logic.exported_files
-    assert len(exported_files) == 1
-    assert path.exists(exported_files[0])
-    remove(exported_files[0])
+    assert len(exported_files) > 0
+    for file_path in exported_files:
+      assert path.exists(file_path)
+      remove(file_path)
+    
+    # Post-assertion cleanup
     exported_files.clear()

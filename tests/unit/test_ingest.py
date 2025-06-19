@@ -9,6 +9,7 @@ from sample.standard.conformed.name import \
 
 
 class TestIngest(TestCase):
+  """Tests the PoltaIngester class"""
   def test_simple_ingest(self) -> None:
     # Pre-assertion cleanup
     in_raw_activity.table.truncate()

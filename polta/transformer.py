@@ -14,6 +14,8 @@ class PoltaTransformer:
     table (PoltaTable): the target PoltaTable
     load_logic (callable): a method to load the source DataFrames
     transform_logic (callable): a method to transform the DataFrames
+  
+  Optional Args:
     write_logic (WriteLogic): how to write to a PoltaTable (default APPEND)
   
   Initialized fields:

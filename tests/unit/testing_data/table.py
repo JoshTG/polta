@@ -1,16 +1,23 @@
 from datetime import datetime, UTC
 from deltalake import Field, Schema
+from os import getcwd, path
 from typing import Any
 
 from polta.enums import TableQuality
 from polta.table import PoltaTable
 from sample.metastore import metastore
-from sample.standard.raw.activity import \
-  table as tab_raw_activity
 
 
 class TestingData:
-  raw_table: PoltaTable = tab_raw_activity
+  raw_table: PoltaTable = PoltaTable(
+    domain='standard',
+    quality=TableQuality.RAW,
+    name='activity_test',
+    raw_schema=Schema([
+      Field('payload', 'string')
+    ]),
+    metastore=metastore
+  )
   table: PoltaTable = PoltaTable(
     domain='standard',
     quality=TableQuality.CANONICAL,
@@ -23,6 +30,20 @@ class TestingData:
     primary_keys=['id', 'name'],
     metastore=metastore
   )
+
+  test_path: str = path.join(getcwd(), 'sample', 'test_metastore', 'volumes', 'test_zone', 'table')
+  filter_conditions_msg: str = 'Error: filter_conditions must be of type <dict>'
+  partition_by_msg: str = 'Error: partition_by must be of type <list>'
+  order_by_msg: str = 'Error: order_by must be of type <list>'
+  order_by_descending_msg: str = 'Error: order_by_descending must be of type <bool>'
+  select_msg: str = 'Error: select must be of type <list>'
+  sort_by_msg: str = 'Error: sort_by must be of type <list>'
+  limit_msg: str = 'Error: limit must be of type <int>'
+  unique_msg: str = 'Error: unique must be of type <bool>'
+  partition_by_item_msg: str = 'Error: all values in partition_by must be of type <str>'
+  order_by_item_msg: str = 'Error: all values in order_by must be of type <str>'
+  select_item_msg: str = 'Error: all values in select must be of type <str>'
+  sort_by_item_msg: str = 'Error: all values in sort_by must be of type <str>'
 
   expected_merge_predicate: str = 's.id = t.id AND s.name = t.name'
 

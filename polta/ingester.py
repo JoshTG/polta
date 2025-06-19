@@ -19,7 +19,24 @@ from polta.udfs import file_path_to_json, file_path_to_payload
 
 @dataclass
 class PoltaIngester:
-  """Dataclass for ingesting files into the target table"""
+  """Dataclass for ingesting files into the target table
+  
+  Positional Args:
+    table (PoltaTable): the target table for ingestion
+    directory_type (DirectoryType): the kind of source directory to ingest
+    raw_file_type (RawFileType): the format of the source files
+  
+  Optional Args:
+    write_logic (WriteLogic): how to save the data (default APPEND)
+  
+  Initialized Fields:
+    pipe_type (PipeType): what kind of pipe this is (i.e., INGESTER)
+    raw_polars_schema (dict[str, DataType]): a polars version of the table's raw schema
+    payload_field (Field): the deltalake field of the payload column
+    simple_payload (bool): indicates whether the load is simple
+    metadata_schema (Schema): the deltalake fields for the raw layer
+    payload_schema (dict[str, DataType]): the polars fields for a simple ingestion
+  """
   table: PoltaTable
   directory_type: DirectoryType
   raw_file_type: RawFileType
@@ -52,9 +69,24 @@ class PoltaIngester:
     return {self.table.id: self._ingest_files(df)}
 
   def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
+    """Returns the target table DataFrame from dfs
+    
+    Args:
+      dfs (dict[str, DataFrame]): the DataFrames to transform
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
     return dfs[self.table.id]
 
   def export(self, df: DataFrame) -> Optional[str]:
+    """Exports the DataFrame in a desired format
+
+    This method is unused for ingesters
+
+    Args:
+      df (DataFrame): the DataFrame to export
+    """
     return None
 
   def _get_file_paths(self) -> list[str]:

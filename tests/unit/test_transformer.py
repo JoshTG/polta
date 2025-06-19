@@ -9,6 +9,7 @@ from tests.unit.testing_data.transformer import TestingData
 
 
 class TestTransformer(TestCase):
+  """Tests PoltaTransformer class"""
   td: TestingData = TestingData()
   tr: PoltaTransformer = tra_con_activity
 
@@ -27,4 +28,5 @@ class TestTransformer(TestCase):
       self.td.output_rows
 
   def test_export(self) -> None:
+    # Assert export returns None
     assert self.tr.export(self.tr.table.get()) is None

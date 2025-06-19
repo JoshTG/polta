@@ -20,6 +20,7 @@ from polta.exceptions import DataTypeNotRecognized
 
 
 class PoltaMaps:
+  """Contains various mapper fields and methods for Polta operations"""
   DELTALAKE_TO_POLARS_FIELD: dict[str, plDataType] = {
     'boolean': Boolean,
     'date': Date,
@@ -118,9 +119,7 @@ class PoltaMaps:
       field (Field): the resulting deltalake field
     """
     try:
-      if isinstance(data_type, Array):
-        return Field(column, data_type.element_type)
-      elif isinstance(data_type, List):
+      if isinstance(data_type, List):
         dt: Optional[str] = PoltaMaps.POLARS_TO_DELTALAKE_FIELD[data_type.inner]
         return Field(column, ArrayType(dt))
       else:

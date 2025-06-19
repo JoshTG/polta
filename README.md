@@ -171,14 +171,29 @@ To use the code from the repository itself, either for testing or contributing, 
 
 This project uses `pytest` for its tests, all of which exist in the `tests` directory. Below are recommended testing options.
 
-### VS Code (Preferred)
+## Run Tests via VS Code
 
 There is a `Testing` tab in the left-most menu by default that allows you to run `pytest` tests in bulk or individually.
 
-### Poetry
+## Run Tests via Poetry
 To execute tests using `poetry`, run this command in your terminal at the top-level directory:
+
 ```sh
 poetry run pytest tests/ -vv -s
+```
+
+##  Check Test Coverage
+
+To check the overall test coverage, use the `pytest-cov` package by running this command in your terminal at the top-level directory:
+
+```sh
+poetry run pytest --cov=polta tests/ -vv -s
+```
+
+If you do not have 100% coverage, you can see which lines of code are not covered by running this command:
+
+```sh
+poetry run coverage report -m
 ```
 
 # Usage
@@ -385,6 +400,7 @@ Below are the top-level packages with their licenses.
 | [ipykernel](https://github.com/ipython/ipykernel) | >=6.29.5, <6.30.0 | Creates Jupyter notebooks for ad hoc analytics | BSD-3-Clause License |
 | [polars](https://github.com/pola-rs/polars) | >=1.30.0, <1.31.0 | Executes DataFrame transformation | MIT License |
 | [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit/integration testing | MIT License |
+| [pytest-cov](https://github.com/pytest-dev/pytest-cov) | >=6.2.1, <6.3.0 | Applies test coverage to pytest runs | MIT License |
 | [tzdata](https://github.com/python/tzdata) | >=2025.2, <2026.1 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
 
 # Contributing
@@ -396,7 +412,7 @@ To contribute, follow these steps:
 1. Clone the repository into your local machine.
 2. Create a descriptive feature branch.
 3. Make the desired changes.
-4. Fully test the desired changes using the `unit` and `integration` test directories in the `tests` directory.
+4. Fully test the desired changes using the `unit` and `integration` test directories in the `tests` directory. Ensure you have 100% test coverage.
 5. Uptick the `poetry` project version appropriately using standard semantic versioning.
 6. Create a merge request into the `main` branch of the official `polta` project and assign it initially to @JoshTG.
 7. Once the merge request is approved and merged, an administrator will schedule a release cycle and deploy the changes using a new release tag.

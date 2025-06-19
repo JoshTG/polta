@@ -6,10 +6,12 @@
 **/test_metastore/tables/
 **/test_metastore/volumes/state/
 **/test_metastore/volumes/exports/
+**/test_metastore_init/
 
 # Generated test/cache files
 .pytest_cache
 __pycache__
+.coverage
 
 # User-generated files
 *scratch.ipynb

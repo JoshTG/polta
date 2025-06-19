@@ -25,4 +25,5 @@ class TestingData:
     'tags': List(String),
     'active_ts': Datetime(time_zone='UTC')
   }
+  bad_deltalake_fields: list[str] = ['unknown']
   bad_polars_fields: list[str] = ['stirng', 'spam', 'eggs']

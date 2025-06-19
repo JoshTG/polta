@@ -20,25 +20,17 @@ from polta.transformer import PoltaTransformer
 
 @dataclass
 class PoltaPipe:
-  """Executes data transformation across two layers
-
-  The main methods that should be overriden:
-    1. load_dfs() -> populate self.dfs with dependent DataFrames
-    2. transform() -> apply transformation logic against self.dfs
+  """Changes and moves data in the metastore
   
-  The main method that should be executed:
-    1. execute() -> executes the pipeline
-  
-  Args:
+  Positional Args:
     logic (Union[PoltaIngester, PoltaExporter, PoltaTransformer]): the pipe logic to handle data
-    strict (optional) (bool): indicates whether to fail on empty target DataFrame
   
   Initialized fields:
+    id (str): the unique ID of the pipe for the pipeline
     table (PoltaTable): the destination Polta Table
-    write_logic (WriteLogic): how the data should be placed in target table
+    write_logic (Optional[WriteLogic]): how the data should be placed in target table
   """
   logic: Union[PoltaExporter, PoltaIngester, PoltaTransformer]
-  strict: bool = field(default_factory=lambda: False)
 
   id: str = field(init=False)
   table: PoltaTable = field(init=False)
@@ -54,12 +46,13 @@ class PoltaPipe:
     self.write_logic = self.logic.write_logic
 
   def execute(self, dfs: dict[str, DataFrame] = {},
-              in_memory: bool = False) -> DataFrame:
+              in_memory: bool = False, strict: bool = False) -> DataFrame:
     """Executes the pipe
 
     Args:
       dfs (dict[str, DataFrame]): if applicable, source DataFrames (default {})
       in_memory (bool): indicates whether to run without saving (default False)
+      strict (bool): indicates whether to fail on empty result (default False)
 
     Returns:
       df (DataFrame): the resulting DataFrame
@@ -72,6 +65,9 @@ class PoltaPipe:
       df: DataFrame = self.logic.transform(dfs)
       df: DataFrame = self.add_metadata_columns(df)
       df: DataFrame = self.conform_schema(df)
+
+    if strict and df.is_empty():
+      raise EmptyPipe()
 
     if isinstance(self.logic, (PoltaIngester, PoltaTransformer)) and not in_memory:
       self.save(df)
@@ -138,11 +134,6 @@ class PoltaPipe:
       schema=self.table.schema_deltalake
     )
     print(f'Loading {df.shape[0]} record(s) into {self.table.table_path}')
-
-    if df.is_empty():
-      if self.strict:
-        raise EmptyPipe()
-      return
 
     if self.write_logic.value == WriteLogic.APPEND.value:
       self.table.append(df)

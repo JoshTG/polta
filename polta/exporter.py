@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from json import dump
+from json import dumps
 from os import makedirs, path
 from polars import DataFrame
 from typing import Optional
 
 from polta.enums import ExportFormat, PipeType, WriteLogic
+from polta.serializers import json
 from polta.table import PoltaTable
 
 
@@ -13,14 +14,22 @@ from polta.table import PoltaTable
 class PoltaExporter:
   """Executes an export of a PoltaTable
   
-  Args:
+  Positional Args:
     table (PoltaTable): the main table for the export
     export_format (ExportFormat): how to save the data
+  
+  Optional Args:
     export_directory (str): where to save the data (default export volume)
+
+  Initialized Fields:
+    pipe_type (PipeType): what kind of pipe this is (i.e., EXPORTER)
+    write_logic (Optional[WriteLogic]): how to save the data (i.e., None)
+    exported_files (list[str]): the path of the exported files
   """
   table: PoltaTable
   export_format: ExportFormat
   export_directory: str = field(default_factory=lambda: '')
+
   pipe_type: PipeType = field(init=False)
   write_logic: Optional[WriteLogic] = field(init=False)
   exported_files: list[str] = field(init=False)
@@ -48,10 +57,16 @@ class PoltaExporter:
     return {} if df.is_empty() else {self.table.id: df}
 
   def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
-    """
+    """Returns the target table DataFrame from dfs
+    
+    Args:
+      dfs (dict[str, DataFrame]): the DataFrames to transform
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
     """
     return dfs[self.table.id]
-  
+
   def export(self, df: DataFrame) -> Optional[str]:
     """Exports the DataFrame to file storage
 
@@ -69,16 +84,25 @@ class PoltaExporter:
     elif self.export_format.value == ExportFormat.JSON.value:
       self._to_json(df, file_path)
     else:
-      raise NotImplementedError()
+      raise NotImplementedError(f'Error: export format not implemented: {self.export_format.value}')
     self.exported_files.append(file_path)
     return file_path
 
   def _to_csv(self, df: DataFrame, file_path: str) -> None:
     """Exports the DataFrame to a CSV format
+
+    Args:
+      df (DataFrame): the DataFrame to export
+      file_path (str): the target path of the file
     """
     df.write_csv(file_path)
   
   def _to_json(self, df: DataFrame, file_path: str) -> None:
     """Exports the DataFrame to a JSON format
+
+    Args:
+      df (DataFrame): the DataFrame to export
+      file_path (str): the target path of the file
     """
-    dump(df.to_dicts(), file_path)
+    content: str = dumps(df.to_dicts(), default=json)
+    open(file_path, 'w').write(content)

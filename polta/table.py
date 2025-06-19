@@ -17,7 +17,7 @@ from polta.types import RawPoltaData
 
 @dataclass
 class PoltaTable:
-  """Class to store all applicable information for a Polars + Delta Table
+  """Stores all applicable information for a Polars + Delta Table dataset
   
   Positional Args:
     domain (str): the kind of data this table contains
@@ -32,6 +32,7 @@ class PoltaTable:
   Initialized fields:
     id (str): the unique identifier for the table
     table_path (str): the absolute path to the Polta Table in the metastore
+    ingestion_zone_path (str): the path to the ingestion zone
     state_file_directory (str): the absolute path to the state files directory
     state_file_path (str): the absolute path to the Polta Table state file
     schema_polars (dict[str, DataType]): the table schema as a Polars object
@@ -106,10 +107,11 @@ class PoltaTable:
     if not isinstance(schema, Schema):
       raise TypeError('Error: schema must be of type <Schema>')
 
-    # If the Delta Table does not exist yet, create it with the expected schema             
-    if not DeltaTable.is_deltatable(table_path):
-      makedirs(table_path, exist_ok=True)
+    # If it exists already, return
+    if DeltaTable.is_deltatable(table_path):
+      return
 
+    makedirs(table_path, exist_ok=True)
     dt: DeltaTable = DeltaTable.create(table_path, schema, mode='ignore')
     dt.alter.add_feature(
       feature=TableFeatures.TimestampWithoutTimezone,
@@ -205,6 +207,8 @@ class PoltaTable:
       raise TypeError('Error: partition_by must be of type <list>')
     if not isinstance(order_by, list):
       raise TypeError('Error: order_by must be of type <list>')
+    if not isinstance(order_by_descending, bool):
+      raise TypeError('Error: order_by_descending must be of type <bool>')
     if not isinstance(select, list):
       raise TypeError('Error: select must be of type <list>')
     if not isinstance(sort_by, list):
@@ -214,18 +218,17 @@ class PoltaTable:
     if not isinstance(unique, bool):
       raise TypeError('Error: unique must be of type <bool>')
     if not all(isinstance(c, str) for c in partition_by):
-      raise ValueError('Error: all values in partition_by must be of type <str>')
+      raise TypeError('Error: all values in partition_by must be of type <str>')
     if not all(isinstance(c, str) for c in order_by):
-      raise ValueError('Error: all values in order_by must be of type <str>')
+      raise TypeError('Error: all values in order_by must be of type <str>')
     if not all(isinstance(c, str) for c in select):
-      raise ValueError('Error: all values in select must be of type <str>')
+      raise TypeError('Error: all values in select must be of type <str>')
     if not all(isinstance(c, str) for c in sort_by):
-      raise ValueError('Error: all values in sort_by must be of type <str>')
+      raise TypeError('Error: all values in sort_by must be of type <str>')
 
     # Create the Delta Table if it does not exist
-    if not path.exists(self.table_path):
-      self.create_if_not_exists(self.table_path, self.schema_deltalake)
-        
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Retrieve Delta Table as a Polars DataFrame
     df: DataFrame = read_delta(self.table_path)
 
@@ -267,8 +270,6 @@ class PoltaTable:
     """
     if not self.primary_keys:
       raise ValueError('Error: Delta Table does not have primary keys')
-    if not self.merge_predicate:
-      raise ValueError('Error: merge predicate did not initialize')
 
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
