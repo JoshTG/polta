@@ -17,7 +17,7 @@ from sample.standard.raw.activity import \
 
 
 class TestPipeline(TestCase):
-  """Tests the standard and in-memory PoltaPipeline logic"""
+  """Tests the standard and in-memory Pipeline logic"""
   def test_standard_pipeline(self) -> None:
     # Truncate tables first
     tab_raw_activity.truncate()

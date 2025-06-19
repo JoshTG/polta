@@ -1,4 +1,4 @@
-from polta.pipeline import PoltaPipeline
+from polta.pipeline import Pipeline
 from sample.standard.canonical.user import \
   pipe as pip_can_user
 from sample.standard.conformed.activity import \
@@ -11,7 +11,7 @@ from sample.standard.raw.activity import \
   pipe as pip_raw_activity
 
 
-pipeline: PoltaPipeline = PoltaPipeline(
+pipeline: Pipeline = Pipeline(
   raw_pipes=[pip_raw_activity],
   conformed_pipes=[pip_con_activity, pip_con_name],
   canonical_pipes=[pip_can_user],

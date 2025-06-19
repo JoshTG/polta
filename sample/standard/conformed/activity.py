@@ -3,15 +3,15 @@ from polars import col, DataFrame
 from polars.datatypes import DataType, List, Struct
 
 from polta.enums import TableQuality, WriteLogic
-from polta.maps import PoltaMaps
-from polta.pipe import PoltaPipe
-from polta.table import PoltaTable
-from polta.transformer import PoltaTransformer
+from polta.maps import Maps
+from polta.pipe import Pipe
+from polta.table import Table
+from polta.transformer import Transformer
 from polta.udfs import string_to_struct
 from sample.metastore import metastore
 
 
-table: PoltaTable = PoltaTable(
+table: Table = Table(
   domain='standard',
   quality=TableQuality.CONFORMED,
   name='activity',
@@ -49,7 +49,7 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
   Returns:
     df (DataFrame): the resulting DataFrame
   """
-  raw_polars_schema: dict[str, DataType] = PoltaMaps \
+  raw_polars_schema: dict[str, DataType] = Maps \
       .deltalake_schema_to_polars_schema(table.raw_schema)
 
   return (dfs['activity']
@@ -65,11 +65,11 @@ def transform(dfs: dict[str, DataFrame]) -> DataFrame:
     .drop('payload')
   )
 
-transformer: PoltaTransformer = PoltaTransformer(
+transformer: Transformer = Transformer(
   table=table,
   load_logic=get_dfs,
   transform_logic=transform,
   write_logic=WriteLogic.APPEND
 )
 
-pipe: PoltaPipe = PoltaPipe(transformer)
+pipe: Pipe = Pipe(transformer)
