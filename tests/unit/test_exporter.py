@@ -2,7 +2,6 @@ from os import path, remove
 from polars import DataFrame
 from unittest import TestCase
 
-from polta.enums import DirectoryType
 from tests.unit.testing_data.exporter import TestingData
 
 

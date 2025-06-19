@@ -271,6 +271,9 @@ class PoltaTable:
     if not self.primary_keys:
       raise ValueError('Error: Delta Table does not have primary keys')
 
+    # Ensure table exists first
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
 
@@ -298,6 +301,9 @@ class PoltaTable:
     Args:
       data (RawPoltaData): the data with which to overwrite
     """
+    # Ensure table exists first
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
 
@@ -312,7 +318,10 @@ class PoltaTable:
 
     Args:
       data (RawPoltaData): the data with which to append
-    """    
+    """
+    # Ensure table exists first
+    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
 
