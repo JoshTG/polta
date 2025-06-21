@@ -16,8 +16,8 @@ class TestPipes(TestCase):
     pip_raw_activity.table.truncate()
 
     # Assert ingester pipe works as expected
-    row_count: int = pip_raw_activity.execute().shape[0]
-    assert row_count == 2
+    passed, _, _ = pip_raw_activity.execute()
+    assert passed.shape[0] == 2
 
     # Post-assertion cleanup
     pip_raw_activity.table.truncate()
@@ -28,8 +28,8 @@ class TestPipes(TestCase):
     pip_raw_activity.execute()
 
     # Assert transformer pipe works as expected
-    row_count: int = pip_con_activity.execute().shape[0]
-    assert row_count == 3
+    passed, _, _ = pip_con_activity.execute()
+    assert passed.shape[0] == 3
 
     # Post-assertion cleanup
     pip_raw_activity.table.truncate()

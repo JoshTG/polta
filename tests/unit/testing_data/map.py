@@ -9,6 +9,8 @@ from polars.datatypes import (
   String
 )
 
+from polta.enums import TableQuality
+
 
 class TestingData:
   expected_deltalake_schema: Schema = Schema([
@@ -27,3 +29,9 @@ class TestingData:
   }
   bad_deltalake_fields: list[str] = ['unknown']
   bad_polars_fields: list[str] = ['stirng', 'spam', 'eggs']
+
+  failure_quality_values: list[tuple[TableQuality, str]] = [
+    (TableQuality.RAW, '_raw_id'),
+    (TableQuality.CONFORMED, '_conformed_id'),
+    (TableQuality.CANONICAL, '_canonicalized_id')
+  ]

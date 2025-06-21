@@ -1,6 +1,11 @@
 from enum import Enum
 
 
+class CheckAction(Enum):
+  """What to do if a check fails"""
+  FAIL = 'fail'
+  QUARANTINE = 'quarantine'
+
 class DirectoryType(Enum):
   """Ingestion type"""
   SHALLOW = 'shallow'

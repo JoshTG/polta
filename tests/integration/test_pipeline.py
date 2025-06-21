@@ -38,7 +38,7 @@ class TestPipeline(TestCase):
     assert df_activity_raw.shape[0] == 2
     assert df_activity_conformed.shape[0] == 3
     assert df_name.shape[0] == 3
-    assert df_user.shape[0] == 3
+    assert df_user.shape[0] == 2
 
     # Assert export worked as expected
     exported_files: list[str] = ppl_standard_user \

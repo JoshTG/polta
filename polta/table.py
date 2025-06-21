@@ -1,14 +1,17 @@
+import polars as pl
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from deltalake import DeltaTable, Field, Schema, TableFeatures
 from os import makedirs, path
 from pathlib import Path
-from polars import DataFrame, read_delta
+from polars import DataFrame
 from polars.datatypes import DataType
 from shutil import rmtree
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
-from polta.enums import TableQuality
+from polta.test import Test
+from polta.enums import CheckAction, TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
 from polta.maps import Maps
 from polta.metastore import Metastore
@@ -28,6 +31,7 @@ class Table:
     raw_schema (Optional[Schema]): a deltalake schema (default None)
     metastore (Metastore): The metastore (default Metastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
+    tests (list[Test]): test checks before loading any data
   
   Initialized fields:
     id (str): the unique identifier for the table
@@ -39,6 +43,9 @@ class Table:
     schema_deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
     merge_predicate (str): the SQL merge predicate for upserts
+    quarantine_path (str): the path to the corresponding quarantine table
+    quarantine_schema (Schema): the schema of the corresponding quarantine table
+    failure_column (str): the column name for identifying failure records
   """
   domain: str
   quality: TableQuality
@@ -46,6 +53,7 @@ class Table:
   raw_schema: Optional[Schema] = field(default_factory=lambda: None)
   metastore: Metastore = field(default_factory=lambda: Metastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
+  tests: list[Test] = field(default_factory=lambda: [])
 
   id: str = field(init=False)
   table_path: str = field(init=False)
@@ -56,6 +64,9 @@ class Table:
   schema_deltalake: Schema = field(init=False)
   columns: list[str] = field(init=False)
   merge_predicate: str = field(init=False)
+  quarantine_path: str = field(init=False)
+  quarantine_schema: Schema = field(init=False)
+  failure_column: str = field(init=False)
 
   def __post_init__(self) -> None:
     self.id: str = '.'.join([
@@ -93,6 +104,18 @@ class Table:
       self.merge_predicate: list[str] = Table.build_merge_predicate(self.primary_keys)
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
+    
+    self.quarantine_path: str = path.join(
+      self.metastore.volumes_directory,
+      'quarantine',
+      self.domain,
+      self.quality.value,
+      self.name
+    )
+    self.quarantine_schema: dict[str, DataType] = Maps.deltalake_schema_to_polars_schema(
+      Schema(self.schema_deltalake.fields + [Field('failed_test', 'string')])
+    )
+    self.failure_column: str = Maps.quality_to_failure_column(self.quality)
 
   @staticmethod
   def create_if_not_exists(table_path: str, schema: Schema) -> None:
@@ -147,11 +170,11 @@ class Table:
     """
     return ' AND '.join([f's.{k} = t.{k}' for k in primary_keys])
 
-  def enforce_dataframe(self, data: Union[DataFrame, dict, list[dict]]) -> DataFrame:
+  def enforce_dataframe(self, data: RawPoltaData) -> DataFrame:
     """Takes either a DataFrame or record(s) and returns the DataFrame representation
     
     Args:
-      data (Union[DataFrame, dict]): the data to enforce
+      data (RawPoltaData): the data to enforce
     
     Returns:
       df (DataFrame): the DataFrame representation
@@ -165,6 +188,46 @@ class Table:
     else:
       raise PoltaDataFormatNotRecognized(type(data))
 
+  def apply_tests(self, df: DataFrame) -> tuple[DataFrame, DataFrame, DataFrame]:
+    """Applies each test case to the data
+    
+    Args:
+      df (DataFrame): the DataFrame to test
+        
+    Returns:
+      passed, failed, quarantined (DataFrame): the resulting DataFrames
+    """
+    # Build three empty DataFrames to hold results
+    passed: DataFrame = DataFrame([], self.schema_polars)
+    failed: DataFrame = DataFrame([], self.quarantine_schema)
+    quarantined: DataFrame = DataFrame([], self.quarantine_schema)
+
+    # Skip all tests they do not exist
+    if not self.tests:
+      return df, failed, quarantined
+
+    # Iterate the available tests
+    for test in self.tests:
+      # Execute the test against the original DataFrame or the remaining records
+      res_df: DataFrame = test.run(df if passed.is_empty() else passed)
+
+      # Store the results either in a passed DataFrame or failed DataFrame
+      passed: DataFrame = res_df.filter(pl.col(test.result_column) == 1).drop(test.result_column)
+      failed_test: DataFrame = (res_df
+        .filter(pl.col(test.result_column) == 0)
+        .drop(test.result_column)
+        .with_columns(pl.lit(test.check.name).alias('failed_test'))
+      )
+
+      # Depending on the action, place the failed tests in the appropriate DataFrame
+      if test.check_action.value == CheckAction.FAIL.value:
+        failed: DataFrame = pl.concat([failed, failed_test])
+      elif test.check_action.value == CheckAction.QUARANTINE.value:
+        quarantined: DataFrame = pl.concat([quarantined, failed_test])
+
+    # Return the resulting DataFrames
+    return passed, failed, quarantined
+
   def truncate(self) -> None:
     """Truncates the table"""
     self.overwrite(DataFrame([], self.schema_polars))
@@ -173,7 +236,14 @@ class Table:
     """Drops the table"""
     if path.exists(self.table_path) and DeltaTable.is_deltatable(self.table_path):
       rmtree(self.table_path)
-    
+
+  def clear_quarantine(self) -> None:
+    """Clears the quarantine table if it exists"""
+    if path.exists(self.quarantine_path) and \
+     DeltaTable.is_deltatable(self.quarantine_path):
+      df: DataFrame = DataFrame([], self.quarantine_schema)
+      df.write_delta(self.quarantine_path, mode='overwrite')
+
   def get_as_delta_table(self) -> DeltaTable:
     """Retrieves the DeltaTable object for the Table
     
@@ -230,7 +300,7 @@ class Table:
     self.create_if_not_exists(self.table_path, self.schema_deltalake)
 
     # Retrieve Delta Table as a Polars DataFrame
-    df: DataFrame = read_delta(self.table_path)
+    df: DataFrame = pl.read_delta(self.table_path)
 
     # Apply the filter condition if applicable
     if filter_conditions:

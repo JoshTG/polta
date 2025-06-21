@@ -1,7 +1,9 @@
 import polars as pl
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
+from deltalake import DeltaTable
+from os import makedirs
 from polars import DataFrame
 from typing import Optional, Union
 from uuid import uuid4
@@ -45,8 +47,8 @@ class Pipe:
     self.table: Table = self.logic.table
     self.write_logic = self.logic.write_logic
 
-  def execute(self, dfs: dict[str, DataFrame] = {},
-              in_memory: bool = False, strict: bool = False) -> DataFrame:
+  def execute(self, dfs: dict[str, DataFrame] = {}, in_memory: bool = False,
+              strict: bool = False) -> tuple[DataFrame, DataFrame, DataFrame]:
     """Executes the pipe
 
     Args:
@@ -55,10 +57,15 @@ class Pipe:
       strict (bool): indicates whether to fail on empty result (default False)
 
     Returns:
-      df (DataFrame): the resulting DataFrame
+      passed, failed, quarantined (tuple[DataFrame, DataFrame, DataFrame]): the resulting DataFrames
     """
+    print(f'Executing pipe {self.id}')
+
+    # Load in any extra data before transformation
     dfs.update(self.logic.get_dfs())
 
+    # For in-memory exports, just carry over the table data
+    # Otherwise, run the transformation/pre-load steps
     if isinstance(self.logic, Exporter) and in_memory:
       df: DataFrame = dfs[self.table.id]
     else:
@@ -66,15 +73,36 @@ class Pipe:
       df: DataFrame = self.add_metadata_columns(df)
       df: DataFrame = self.conform_schema(df)
 
-    if strict and df.is_empty():
+    # Run any tests and return the three data results
+    passed, failed, quarantined = self.table.apply_tests(df)
+
+    # Handle any failed records first
+    if not failed.is_empty():
+      self.fail(failed)
+    
+    # Handle any quarantined records next
+    if not quarantined.is_empty():
+      self.quarantine(quarantined)
+
+    # If strict mode is enabled and dataset is empty, raise EmptyPipe      
+    if strict and passed.is_empty():
       raise EmptyPipe()
 
+    # For standard runs and non-exports, save the passed data
     if isinstance(self.logic, (Ingester, Transformer)) and not in_memory:
-      self.save(df)
+      self.save(passed)
+    
+    # For exports, export the data
     if isinstance(self.logic, Exporter):
-      self.logic.export(df)
+      self.logic.export(passed)
 
-    return df
+    # Print results
+    print(f'  - Records passed: {passed.shape[0]}')
+    print(f'  - Records failed: {failed.shape[0]}')
+    print(f'  - Records quarantined: {quarantined.shape[0]}')
+
+    # Return remaining passed records
+    return passed, failed, quarantined
   
   def add_metadata_columns(self, df: DataFrame) -> DataFrame:
     """Adds relevant metadata columns to the DataFrame before loading
@@ -88,7 +116,7 @@ class Pipe:
       df (DataFrame): the resulting DataFrame
     """
     id: str = str(uuid4())
-    now: datetime = datetime.now()
+    now: datetime = datetime.now(UTC)
     
     if self.table.quality.value == TableQuality.RAW.value:
       df: DataFrame = df.with_columns([
@@ -143,3 +171,43 @@ class Pipe:
       self.table.upsert(df)
     else:
       raise WriteLogicNotRecognized(self.write_logic)
+
+  def fail(self, df: DataFrame) -> None:
+    """Handles failed records from a save attempt
+    
+    Args:
+      df (DataFrame): the DataFrame of failed records
+    """
+    failed_ids: list[str] = [
+      r[self.table.failure_column] for r in df.select(self.table.failure_column).to_dicts()
+    ]
+    print(f'  - These records failed to load: ' + ', '.join(failed_ids))
+
+  def quarantine(self, df: DataFrame) -> None:
+    """Handles quarantined records from a save attempt
+
+    The records get upserted into the corresponding quarantine table
+    
+    Args:
+      df (DataFrame): the DataFrame of quarantined records
+    """
+    print(f'  - {df.shape[0]} record(s) got quarantined: {self.table.quarantine_path}')
+    # Merge if the quarantine table exists
+    # Otherwise, just append this time
+    if DeltaTable.is_deltatable(self.table.quarantine_path):
+      (df
+        .write_delta(
+          target=self.table.quarantine_path,
+          mode='merge',
+          delta_merge_options={
+            'predicate': f's.{self.table.failure_column} = t.{self.table.failure_column}',
+            'source_alias': 's',
+            'target_alias': 't'
+          }
+        )
+        .when_matched_update_all()
+        .when_not_matched_insert_all()
+        .execute()
+      )
+    else:
+      df.write_delta(self.table.quarantine_path, mode='append')

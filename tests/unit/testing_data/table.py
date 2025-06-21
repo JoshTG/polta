@@ -3,7 +3,9 @@ from deltalake import Field, Schema
 from os import getcwd, path
 from typing import Any
 
-from polta.enums import TableQuality
+from polta.checks import *
+from polta.test import Test
+from polta.enums import CheckAction, TableQuality
 from polta.table import Table
 from sample.metastore import metastore
 
@@ -114,6 +116,20 @@ class TestingData:
   ] 
   output_dataset_2_len: int = 2
 
+  quarantine_dataset: list[dict[str, Any]] = [
+    {
+      '_raw_id': 'abc',
+      '_conformed_id': 'def',
+      '_canonicalized_id': 'ghi',
+      '_created_ts': datetime(2025, 1, 1, 1, 1, 1, tzinfo=UTC),
+      '_modified_ts': datetime(2025, 1, 1, 1, 1, 1, tzinfo=UTC),
+      'id': 1,
+      'name': 'Spongebob Squarepants',
+      'active_ind': True,
+      'failed_test': '__test__'
+    }
+  ]
+
   upsert_1_active_test: tuple[int, bool] = [3, False]
   upsert_2_active_test: tuple[int, bool] = [3, True]
   upsert_ids: list[dict[str, int]] = [
@@ -123,3 +139,82 @@ class TestingData:
     {'id': 4}
   ]
   upsert_len: int = 4
+
+  apply_test_table: Table = Table(
+    domain='standard',
+    quality=TableQuality.CANONICAL,
+    name='apply_tests',
+    raw_schema=Schema([
+      Field('id', 'integer'),
+      Field('name', 'string'),
+      Field('active_ind', 'boolean'),
+      Field('category', 'string')
+    ]),
+    primary_keys=['id', 'name'],
+    metastore=metastore,
+    tests=[
+      Test(check_not_null_or_empty, 'category', CheckAction.FAIL),
+      Test(check_positive_int, 'id', CheckAction.FAIL),
+      Test(check_value_in, 'active_ind', CheckAction.QUARANTINE, {'values': [False]})
+    ]
+  )
+  apply_test_dataset: list[dict[str, Any]] = [
+    {
+      '_raw_id': 'abc',
+      '_conformed_id': 'def',
+      '_canonicalized_id': 'hij',
+      '_created_ts': datetime.now(UTC),
+      '_modified_ts': datetime.now(UTC),
+      'id': -1,
+      'name': 'Spongebob',
+      'active_ind': True,
+      'category': 'PT'
+    },
+    {
+      '_raw_id': 'klm',
+      '_conformed_id': 'nop',
+      '_canonicalized_id': 'qrs',
+      '_created_ts': datetime.now(UTC),
+      '_modified_ts': datetime.now(UTC),
+      'id': 2,
+      'name': 'Patrick',
+      'active_ind': True,
+      'category': 'FT'
+    },
+    {
+      '_raw_id': 'tuv',
+      '_conformed_id': 'wxy',
+      '_canonicalized_id': 'zab',
+      '_created_ts': datetime.now(UTC),
+      '_modified_ts': datetime.now(UTC),
+      'id': 3,
+      'name': 'Gary',
+      'active_ind': True,
+      'category': ''
+    },
+    {
+      '_raw_id': 'cde',
+      '_conformed_id': 'fgh',
+      '_canonicalized_id': 'ijk',
+      '_created_ts': datetime.now(UTC),
+      '_modified_ts': datetime.now(UTC),
+      'id': 4,
+      'name': 'Plankton',
+      'active_ind': False,
+      'category': 'PT'
+    },
+    {
+      '_raw_id': 'lmn',
+      '_conformed_id': 'opq',
+      '_canonicalized_id': 'rst',
+      '_created_ts': datetime.now(UTC),
+      '_modified_ts': datetime.now(UTC),
+      'id': 5,
+      'name': 'Eugene',
+      'active_ind': True,
+      'category': None
+    }
+  ]
+  passed_ids: list[int] = [2]
+  failed_ids: list[int] = [-1, 3, 5]
+  quarantine_ids: list[int] = [4]

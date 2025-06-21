@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from deltalake import DeltaTable, Schema
 from os import path, remove
-from polars import DataFrame
+from polars import DataFrame, read_delta
 from shutil import rmtree
 from typing import Any
 from unittest import TestCase
@@ -17,6 +17,8 @@ class TestTable(TestCase):
   empty_df: DataFrame = DataFrame([], td.table.schema_polars)
   df_1: DataFrame = DataFrame(td.input_dataset_1)
   df_2: DataFrame = DataFrame(td.input_dataset_2)
+  apply_test_df: DataFrame = DataFrame(td.apply_test_dataset, td.apply_test_table.schema_polars)
+  quarantine_df: DataFrame = DataFrame(td.quarantine_dataset, td.table.quarantine_schema)
 
   def test_create_if_not_exists(self) -> None:
     # Assert method validates input types correctly
@@ -195,6 +197,15 @@ class TestTable(TestCase):
     assert last_modified_datetime.month == now.month
     assert last_modified_datetime.day in [now.day, (now - timedelta(days=1)).day]
 
+  def test_apply_tests(self) -> None:
+    # Apply tests against an input dataset
+    passed, failed, quarantined = self.td.apply_test_table.apply_tests(self.apply_test_df)
+
+    # Assert IDs are correct for each result DataFrame
+    assert sorted([r['id'] for r in passed.to_dicts()]) == self.td.passed_ids
+    assert sorted([r['id'] for r in failed.to_dicts()]) == self.td.failed_ids
+    assert sorted([r['id'] for r in quarantined.to_dicts()]) == self.td.quarantine_ids
+
   def test_append(self) -> None:
     # Truncate table before testing
     self.td.table.truncate()
@@ -275,6 +286,22 @@ class TestTable(TestCase):
     # Assert drop worked
     self.td.table.drop()
     #assert not path.exists(self.td.table.table_path)
+
+  def test_clear_quarantine(self) -> None:
+    # Pre-assertion setup
+    self.td.table.clear_quarantine()
+
+    # Add one record to the quarantine and ensure it loaded
+    self.quarantine_df.write_delta(self.td.table.quarantine_path, mode='append')
+    df: DataFrame = read_delta(self.td.table.quarantine_path)
+    assert isinstance(df, DataFrame)
+    assert df.shape[0] == 1
+
+    # Clear quarantine and ensure the record got deleted
+    self.td.table.clear_quarantine()
+    df: DataFrame = read_delta(self.td.table.quarantine_path)
+    assert isinstance(df, DataFrame)
+    assert df.shape[0] == 0
 
   def test_build_ingestion_zone(self) -> None:
     # Run ingestion zone method
