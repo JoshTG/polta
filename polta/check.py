@@ -4,6 +4,16 @@ from inspect import signature
 
 @dataclass
 class Check:
+  """Contains check metadata and a function to generate results
+  
+  Args:
+    name (str): the name of the check
+    description (str): the description of the check
+    function (callable): the polars transformation code to run the check
+  
+  Initialized Fields:
+    simple_function (bool): indicates whether the arguments are simple (i.e., df, column)
+  """
   name: str
   description: str
   function: callable

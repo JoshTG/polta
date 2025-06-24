@@ -76,11 +76,7 @@ class Pipe:
     # Run any tests and return the three data results
     passed, failed, quarantined = self.table.apply_tests(df)
 
-    # Handle any failed records first
-    if not failed.is_empty():
-      self.fail(failed)
-    
-    # Handle any quarantined records next
+    # Handle any quarantined records
     if not quarantined.is_empty():
       self.quarantine(quarantined)
 
@@ -171,17 +167,6 @@ class Pipe:
       self.table.upsert(df)
     else:
       raise WriteLogicNotRecognized(self.write_logic)
-
-  def fail(self, df: DataFrame) -> None:
-    """Handles failed records from a save attempt
-    
-    Args:
-      df (DataFrame): the DataFrame of failed records
-    """
-    failed_ids: list[str] = [
-      r[self.table.failure_column] for r in df.select(self.table.failure_column).to_dicts()
-    ]
-    print(f'  - These records failed to load: ' + ', '.join(failed_ids))
 
   def quarantine(self, df: DataFrame) -> None:
     """Handles quarantined records from a save attempt
