@@ -1,7 +1,9 @@
 from deltalake import Field, Schema
 from polars import DataFrame
 
-from polta.enums import TableQuality, WriteLogic
+from polta.checks import *
+from polta.test import Test
+from polta.enums import CheckAction, TableQuality, WriteLogic
 from polta.pipe import Pipe
 from polta.table import Table
 from polta.transformer import Transformer
@@ -18,7 +20,11 @@ table: Table = Table(
     Field('active_ind', 'boolean')
   ]),
   primary_keys=['id'],
-  metastore=metastore
+  metastore=metastore,
+  tests=[
+    Test(check_not_null_or_empty, 'name', CheckAction.FAIL),
+    Test(check_value_in, 'id', CheckAction.FAIL, {'values': ['2']})
+  ]
 )
 
 def load_dfs() -> dict[str, DataFrame]:

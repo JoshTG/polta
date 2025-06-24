@@ -6,6 +6,7 @@
 **/test_metastore/tables/
 **/test_metastore/volumes/state/
 **/test_metastore/volumes/exports/
+**/test_metastore/volumes/quarantine/
 **/test_metastore_init/
 
 # Generated test/cache files

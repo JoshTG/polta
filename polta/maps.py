@@ -2,7 +2,6 @@ from deltalake import Field, Schema
 from deltalake.schema import ArrayType
 from json import loads
 from polars.datatypes import (
-  Array,
   Boolean,
   DataType as plDataType,
   Date,
@@ -16,6 +15,7 @@ from polars.datatypes import (
 )
 from typing import Optional, Union
 
+from polta.enums import TableQuality
 from polta.exceptions import DataTypeNotRecognized
 
 
@@ -42,14 +42,14 @@ class Maps:
     Datetime(time_zone='UTC'): 'timestamp'
   }
   QUALITY_TO_METADATA_COLUMNS: dict[str, list[Field]] = {
-    'raw': [
+    TableQuality.RAW.value: [
       Field('_raw_id', 'string'),
       Field('_ingested_ts', 'timestamp'),
       Field('_file_path', 'string'),
       Field('_file_name', 'string'),
       Field('_file_mod_ts', 'timestamp')
     ],
-    'conformed': [
+    TableQuality.CONFORMED.value: [
       Field('_raw_id', 'string'),
       Field('_conformed_id', 'string'),
       Field('_conformed_ts', 'timestamp'),
@@ -58,13 +58,18 @@ class Maps:
       Field('_file_name', 'string'),
       Field('_file_mod_ts', 'timestamp')
     ],
-    'canonical': [
+    TableQuality.CANONICAL.value: [
       Field('_raw_id', 'string'),
       Field('_conformed_id', 'string'),
       Field('_canonicalized_id', 'string'),
       Field('_created_ts', 'timestamp'),
       Field('_modified_ts', 'timestamp')
     ]
+  }
+  QUALITY_TO_FAILURE_COLUMN: dict[str, str] = {
+    TableQuality.RAW.value: '_raw_id',
+    TableQuality.CONFORMED.value: '_conformed_id',
+    TableQuality.CANONICAL.value: '_canonicalized_id'
   }
 
   @staticmethod
@@ -142,3 +147,15 @@ class Maps:
     for column, data_type in schema.items():
       fields.append(Maps.polars_field_to_deltalake_field(column, data_type))
     return Schema(fields)
+
+  @staticmethod
+  def quality_to_failure_column(quality: TableQuality) -> str:
+    """Converts a table quality to the failure column
+    
+    Args:
+      quality (TableQuality): the quality of the table
+    
+    Returns:
+      failure_column (str): the name of the failure column for that quality
+    """
+    return Maps.QUALITY_TO_FAILURE_COLUMN[quality.value]

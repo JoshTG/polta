@@ -24,22 +24,32 @@ class TestingData:
     'standard.raw.activity': DataFrame([
       {
         '_raw_id': '1',
-        '_ingested_ts': datetime.now(UTC),
+        '_ingested_ts': datetime(2025, 1, 1, 12, 30, 0, tzinfo=UTC),
         '_file_path': 'path/to/file1.json',
         '_file_name': 'file1.json',
-        '_file_mod_ts': datetime.now(UTC),
+        '_file_mod_ts': datetime(2025, 1, 1, 6, 25, 0, tzinfo=UTC),
         'payload': '[]'
       },
       {
         '_raw_id': '2',
-        '_ingested_ts': datetime.now(UTC),
+        '_ingested_ts': datetime(2025, 1, 1, 12, 31, 0, tzinfo=UTC),
         '_file_path': 'path/to/file2.json',
         '_file_name': 'file2.json',
-        '_file_mod_ts': datetime.now(UTC),
+        '_file_mod_ts': datetime(2025, 1, 1, 6, 30, 0, tzinfo=UTC),
         'payload': '[]'
       }
     ])
   }
+  quarantine_df: DataFrame = DataFrame([
+    {
+      '_raw_id': '2',
+      '_ingested_ts': datetime(2025, 1, 1, 12, 31, 0, tzinfo=UTC),
+      '_file_path': 'path/to/file2.json',
+      '_file_name': 'file2.json',
+      '_file_mod_ts': datetime(2025, 1, 1, 6, 30, 0, tzinfo=UTC),
+      'payload': '[]'
+    }
+  ])
   table: Table = Table(
     domain='standard',
     quality=TableQuality.RAW,

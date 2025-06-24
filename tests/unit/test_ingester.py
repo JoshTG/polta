@@ -1,9 +1,11 @@
 from os import getcwd, path
-from polars import DataFrame
+from polars import DataFrame, lit
+from shutil import rmtree
 from unittest import TestCase
 
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.ingester import Ingester
+from polta.pipe import Pipe
 from sample.standard.raw.activity import \
   ingester as ing_raw_activity
 from tests.unit.testing_data.ingester import TestingData
@@ -13,6 +15,7 @@ class TestIngester(TestCase):
   """Tests the Ingester class"""
   td: TestingData = TestingData()
   ing: Ingester = ing_raw_activity
+  pip: Pipe = Pipe(ing)
 
   def test_get_dfs(self) -> None:
     # Retrieve the dfs from the ingester
@@ -43,3 +46,41 @@ class TestIngester(TestCase):
   def test_export(self) -> None:
     # Assert export method returns None
     assert self.ing.export(self.ing.table.get()) is None
+
+  def test_get_file_paths(self) -> None:
+    # Assert the test ingester finds two files to load
+    assert len(self.ing._get_file_paths()) == 2
+
+  def test_get_metadata(self) -> None:
+    # Assert the test ingester retrieves two metadata files of proper format
+    metadata: DataFrame = self.ing._get_metadata()
+    assert isinstance(metadata, DataFrame)
+    assert metadata.shape[0] == 2
+
+  def test_filter_by_history(self) -> None:
+    # Pre-assertion setup
+    self.ing.table.truncate()
+    rmtree(self.ing.table.quarantine_path)
+    
+    # Get source metadata and ensure neither record is filtered
+    metadata: DataFrame = self.ing._get_metadata()
+    res_1: DataFrame = self.ing._filter_by_history(metadata)
+    assert res_1.shape[0] == 2
+
+    # Write to the quarantine table and assert one record getting filtered
+    quarantine_df: DataFrame = (metadata
+      .limit(1)
+      .with_columns(
+        [
+          lit('').alias('payload'),
+          lit('__test__').alias('failed_test')
+        ]
+      )
+    )
+    self.pip.quarantine(quarantine_df)
+    res_2: DataFrame = self.ing._filter_by_history(metadata)
+    assert res_2.shape[0] == 1
+
+    # Post-assertion cleanup
+    self.ing.table.truncate()
+    self.ing.table.clear_quarantine()

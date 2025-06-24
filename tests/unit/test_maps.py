@@ -47,3 +47,8 @@ class TestMaps(TestCase):
     # Assert a polars schema gets mapped properly
     assert self.td.expected_deltalake_schema == \
       Maps.polars_schema_to_deltalake_schema(self.td.expected_polars_schema)
+
+  def test_quality_to_failure_column(self) -> None:
+    # Assert the qualities are mapped to failure columns as expected
+    for quality, expected_column in self.td.failure_quality_values:
+      assert Maps.quality_to_failure_column(quality) == expected_column

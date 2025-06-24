@@ -1,7 +1,7 @@
 from deltalake import Field, Schema
 from polars import DataFrame
 
-from polta.enums import TableQuality, WriteLogic
+from polta.enums import TableQuality
 from polta.pipe import Pipe
 from polta.table import Table
 from polta.transformer import Transformer

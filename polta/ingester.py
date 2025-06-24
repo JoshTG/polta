@@ -2,7 +2,7 @@ import polars as pl
 
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
-from deltalake import Field, Schema
+from deltalake import DeltaTable, Field, Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
@@ -62,9 +62,7 @@ class Ingester:
 
   def get_dfs(self) -> dict[str, DataFrame]:
     """Ingests new files into the target table"""
-    file_paths: list[str] = self._get_file_paths()
-    metadata: list[RawMetadata] = [self._get_file_metadata(p) for p in file_paths]
-    df: DataFrame = DataFrame(metadata, schema=self.payload_schema)
+    df: DataFrame = self._get_metadata()
     df = self._filter_by_history(df)
     return {self.table.id: self._ingest_files(df)}
 
@@ -111,22 +109,46 @@ class Ingester:
     else:
       raise DirectoryTypeNotRecognized(self.directory_type)
 
-  def _filter_by_history(self, file_paths: list[RawMetadata]) -> DataFrame:
+  def _get_metadata(self) -> DataFrame:
+    """Retrieves source file metadata as a DataFrame
+        
+    Returns:
+      df (DataFrame): the metadata DataFrame
+    """
+    file_paths: list[str] = self._get_file_paths()
+    metadata: list[RawMetadata] = [self._get_file_metadata(p) for p in file_paths]
+    return DataFrame(metadata, schema=self.payload_schema)
+
+  def _filter_by_history(self, metadata: list[RawMetadata]) -> DataFrame:
     """Removes files from ingestion attempt that have already been ingested
     
     Args:
-      file_paths (list[RawMetadata]): the file paths to ingest
+      metadata (list[RawMetadata]): the file metadata to ingest
     
     Returns:
       file_paths (DataFrame): the resulting DataFrame object with the filtered paths
     """
-    paths: DataFrame = DataFrame(file_paths, schema=self.payload_schema)
+    # Convert the file_paths field into a DataFrame
+    paths: DataFrame = DataFrame(metadata, schema=self.payload_schema)
+
+    # Retrieve the history from the target table
     hx: DataFrame = (self.table
       .get(select=['_file_path', '_file_mod_ts'], unique=True)
       .group_by('_file_path')
       .agg(pl.col('_file_mod_ts').max())
     )
 
+    # If there is a quarantine table, add the history from there, too
+    if DeltaTable.is_deltatable(self.table.quarantine_path):
+      hx_quarantine: DataFrame = (pl.read_delta(self.table.quarantine_path)
+        .select('_file_path', '_file_mod_ts')
+        .unique()
+        .group_by('_file_path')
+        .agg(pl.col('_file_mod_ts').max())
+      )
+      hx: DataFrame = pl.concat([hx, hx_quarantine]).unique()
+
+    # Filter the paths by the temporary history DataFrame
     return (paths
       .join(hx, '_file_path', 'left')
       .filter(
