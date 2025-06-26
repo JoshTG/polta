@@ -120,7 +120,8 @@ The `Ingester` is the primary way to load source files into the raw layer.
 It currently supports ingesting these formats:
 
 1. JSON
-2. String payload
+2. Excel
+3. String payload
 
 An instance can get passed into a `Pipe` to ingest data into a `Table`.
 
