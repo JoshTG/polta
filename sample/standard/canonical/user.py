@@ -17,7 +17,8 @@ table: Table = Table(
   raw_schema=Schema([
     Field('id', 'string'),
     Field('name', 'string'),
-    Field('active_ind', 'boolean')
+    Field('active_ind', 'boolean'),
+    Field('salary', 'long')
   ]),
   primary_keys=['id'],
   metastore=metastore,
@@ -37,8 +38,12 @@ def load_dfs() -> dict[str, DataFrame]:
   Returns:
     dfs (dict[str, DataFrame]): the resulting data as 'name' and 'activity'
   """
-  from sample.standard.conformed.name import table as tab_con_name
-  from sample.standard.conformed.activity import table as tab_con_activity
+  from sample.standard.conformed.activity import \
+    table as tab_con_activity
+  from sample.standard.conformed.name import \
+    table as tab_con_name
+  from sample.standard.conformed.salary import \
+    table as tab_con_salary
 
   name_df: DataFrame = (tab_con_name
     .get()
@@ -50,20 +55,29 @@ def load_dfs() -> dict[str, DataFrame]:
     .sort('_file_path', '_file_mod_ts', descending=True)
     .unique(subset='id', keep='first')
   )
+  salary_df: DataFrame = (tab_con_salary
+    .get()
+    .sort('_file_path', '_file_mod_ts', descending=True)
+    .unique(subset='id', keep='first')
+  )
 
   return {
+    'activity': activity_df,
     'name': name_df,
-    'activity': activity_df
+    'salary': salary_df
   }
 
 transform: str = '''
   SELECT
       n.*
     , a.active_ind
+    , s.salary
   FROM
     name n
   INNER JOIN activity a
   ON n.id = a.id
+  LEFT JOIN salary s
+  ON n.id = s.id
 '''
 
 transformer: Transformer = Transformer(
