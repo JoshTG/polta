@@ -4,9 +4,9 @@ _Data engineering tool combining Polars transformations with Delta tables/lakes.
 ![PyTest](https://github.com/JoshTG/polta/actions/workflows/run-pytest.yml/badge.svg) [![PyPI version](https://img.shields.io/pypi/v/polta.svg)](https://pypi.org/project/polta/)
 
 # Core Concepts
-The `polta` module revolves around the following core objects that, in conjunction with each other, allow you to create small-to-medium-scale pipelines.
+The `polta` package allows you to declare simple building blocks that interact with each other to form small-to-medium-scale data pipelines.
 
-Throughout this README and in the repository's `sample` pipelines, various objects are aliased in a consistent manner when imported. Below is a table of such aliases for convenience.
+The existing `polars` and `delta` packages make a great team, but they can be tricky to interact with at times. The `polta` package aims to provide a unified wrapper for them, along with some custom homebrewed tools and objects, so that moving and managing data across layers of abstraction is intuitive and resilient.
 
 ## At a Glance
 
@@ -19,6 +19,8 @@ Throughout this README and in the repository's `sample` pipelines, various objec
 * The data are managed in `Tables`, which use `deltalake` and `polars` under the hood.
 
 ## Terminology
+
+Throughout this README and in the repository's `sample` pipelines, various objects are aliased in a consistent manner when imported. Below is a table of such aliases for convenience.
 
 | Object        | Alias                               | Example            |
 | ------------- | ----------------------------------  | ------------------ |
@@ -125,6 +127,40 @@ An instance can get passed into a `Pipe` to ingest data into a `Table`.
 ### Transformer
 
 The `Transformer` reads one or more `Table` objects from a layer, applies transformation logic, and writes the output into a target `Table`.
+
+This object accepts as the transformation logic either a custom function or a SQL query.
+
+The custom function may look like this:
+
+```python
+from polars import DataFrame
+
+
+def transform(dfs: dict[str, DataFrame]) -> DataFrame:
+  """Applies a simple join between name and activity
+
+  Args:
+    dfs (dict[str, DataFrame]): the input DataFrames
+  
+  Returns:
+    df (DataFrame): the resulting DataFrame
+  """
+  return dfs['name'].join(dfs['activity'], 'id', 'inner')
+```
+
+Alternatively, a SQL query might look like this:
+
+```python
+transform: str = '''
+  SELECT
+      n.*
+    , a.active_ind
+  FROM
+    name n
+  INNER JOIN activity a
+  ON n.id = a.id
+'''
+```
 
 ### Exporter
 

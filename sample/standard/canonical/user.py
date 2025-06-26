@@ -56,14 +56,15 @@ def load_dfs() -> dict[str, DataFrame]:
     'activity': activity_df
   }
 
-def transform(dfs: dict[str, DataFrame]) -> DataFrame:
-  """Basic transformation logic:
-    1. Inner join name and activity on 'id'
-  
-  Returns:
-    df (DataFrame): the joined DataFrame
-  """
-  return dfs['name'].join(dfs['activity'], 'id', 'inner')
+transform: str = '''
+  SELECT
+      n.*
+    , a.active_ind
+  FROM
+    name n
+  INNER JOIN activity a
+  ON n.id = a.id
+'''
 
 transformer: Transformer = Transformer(
   table=table,

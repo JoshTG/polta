@@ -25,6 +25,12 @@ class EmptyPipe(Exception):
     self.message: str = f'Pipe executed in strict mode but did not load data'
     super().__init__(self.message)
 
+class IncompatibleTransformLogic(Exception):
+  """Raise when the transform logic is not compatible with system"""
+  def __init__(self, transform_logic: Any) -> None:
+    self.message: str = f'Incompatible transform logic of type {type(transform_logic)}'
+    super().__init__(self.message)
+
 class PoltaDataFormatNotRecognized(Exception):
   """Raise when the Polta data format is not recognized by system"""
   def __init__(self, format: type) -> None:

@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
-from polars import DataFrame
-from typing import Optional
+from polars import DataFrame, SQLContext
+from types import FunctionType
+from typing import Optional, Union
 
 from polta.enums import PipeType, WriteLogic
+from polta.exceptions import IncompatibleTransformLogic
 from polta.table import Table
 
 
@@ -12,8 +14,8 @@ class Transformer:
   
   Positional Args:
     table (Table): the target Table
-    load_logic (callable): a method to load the source DataFrames
-    transform_logic (callable): a method to transform the DataFrames
+    load_logic (FunctionType): a method to load the source DataFrames
+    transform_logic (Union[FunctionType, str]): a method to transform the DataFrames, or a SQL query
   
   Optional Args:
     write_logic (WriteLogic): how to write to a Table (default APPEND)
@@ -22,8 +24,8 @@ class Transformer:
     pipe_type (PipeType): the type of pipe this is (i.e., TRANSFORMER)
   """
   table: Table
-  load_logic: callable
-  transform_logic: callable
+  load_logic: FunctionType
+  transform_logic: Union[FunctionType, str]
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
   pipe_type: PipeType = field(init=False)
@@ -48,8 +50,16 @@ class Transformer:
     Returns:
       df (DataFrame): the transformed DataFrame
     """
-    return self.transform_logic(dfs)
-
+    if isinstance(self.transform_logic, FunctionType):
+      return self.transform_logic(dfs)
+    elif isinstance(self.transform_logic, str):
+      return SQLContext(frames=dfs).execute(
+        query=self.transform_logic,
+        eager=True
+      )
+    else:
+      raise IncompatibleTransformLogic(self.transform_logic)
+  
   def export(self, df: DataFrame) -> Optional[str]:
     """Exports the DataFrame in a desired format
 
