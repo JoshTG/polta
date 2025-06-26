@@ -63,7 +63,7 @@ class Table:
   schema_polars: dict[str, DataType] = field(init=False)
   schema_deltalake: Schema = field(init=False)
   columns: list[str] = field(init=False)
-  merge_predicate: str = field(init=False)
+  merge_predicate: Optional[str] = field(init=False)
   quarantine_path: str = field(init=False)
   quarantine_schema: Schema = field(init=False)
   failure_column: str = field(init=False)
@@ -101,7 +101,9 @@ class Table:
     self.columns: list[str] = list(self.schema_polars.keys())
 
     if self.primary_keys:
-      self.merge_predicate: list[str] = Table.build_merge_predicate(self.primary_keys)
+      self.merge_predicate: Optional[str] = Table.build_merge_predicate(self.primary_keys)
+    else:
+      self.merge_predicate: Optional[str] = None
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
     

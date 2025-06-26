@@ -25,6 +25,7 @@ class PipeType(Enum):
 class RawFileType(Enum):
   """Format of raw files"""
   JSON = 'json'
+  EXCEL = 'excel'
 
 class TableQuality(Enum):
   """The quality of the Delta Table"""

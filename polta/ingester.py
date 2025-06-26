@@ -13,7 +13,7 @@ from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.maps import Maps
 from polta.table import Table
-from polta.types import RawMetadata
+from polta.types import ExcelSpreadsheetEngine, RawMetadata
 from polta.udfs import file_path_to_json, file_path_to_payload
 
 
@@ -48,6 +48,7 @@ class Ingester:
   simple_payload: bool = field(init=False)
   metadata_schema: Schema = field(init=False)
   payload_schema: dict[str, DataType] = field(init=False)
+  excel_engine: ExcelSpreadsheetEngine = field(default_factory=lambda: 'openpyxl')
 
   def __post_init__(self) -> None:
     self.pipe_type: PipeType = PipeType.INGESTER
@@ -61,10 +62,18 @@ class Ingester:
     )
 
   def get_dfs(self) -> dict[str, DataFrame]:
-    """Ingests new files into the target table"""
+    """Ingests new files as DataFrames in a dict object
+    
+    Returns:
+      dfs (dict[str, DataFrame]): the new DataFrames
+    """
     df: DataFrame = self._get_metadata()
     df = self._filter_by_history(df)
-    return {self.table.id: self._ingest_files(df)}
+
+    if df.is_empty():
+      return {self.table.id: DataFrame([], self.table.schema_polars)}
+    else:
+      return {self.table.id: self._ingest_files(df)}
 
   def transform(self, dfs: dict[str, DataFrame]) -> DataFrame:
     """Returns the target table DataFrame from dfs
@@ -171,6 +180,8 @@ class Ingester:
       return self._run_simple_load(df)
     elif self.raw_file_type.value == RawFileType.JSON.value:
       return self._run_json_load(df)
+    elif self.raw_file_type.value == RawFileType.EXCEL.value:
+      return self._run_excel_load(df)
     else:
       raise NotImplementedError(self.raw_file_type)
 
@@ -237,3 +248,17 @@ class Ingester:
       .drop('payload')
     )
     return df
+
+  def _run_excel_load(self, df: DataFrame) -> DataFrame:
+    return (pl
+      .read_excel(
+        source=[r['_file_path'] for r in df.select('_file_path').to_dicts()],
+        sheet_id=1,
+        has_header=True,
+        engine=self.excel_engine,
+        include_file_paths='_file_path',
+        drop_empty_rows=True,
+        schema_overrides=self.raw_polars_schema
+      )
+      .join(df, '_file_path', 'inner')
+    )

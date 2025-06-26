@@ -1,8 +1,9 @@
 from datetime import datetime
 from polars import DataFrame
-from typing import TypeAlias, TypedDict, Union
+from typing import Literal, TypeAlias, TypedDict, Union
 
 
+ExcelSpreadsheetEngine: TypeAlias = Literal['calamine', 'openpyxl', 'xlsx2csv']
 RawPoltaData: TypeAlias = Union[DataFrame, dict, list[dict]]
 
 class RawMetadata(TypedDict):
