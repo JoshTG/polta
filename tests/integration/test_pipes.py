@@ -16,8 +16,16 @@ class TestPipes(TestCase):
     pip_raw_activity.table.truncate()
 
     # Assert ingester pipe works as expected
-    passed, _, _ = pip_raw_activity.execute()
+    passed, failed, quarantined = pip_raw_activity.execute()
     assert passed.shape[0] == 2
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
+
+    # Run again and assert nothing comes through
+    passed, failed, quarantined = pip_raw_activity.execute()
+    assert passed.shape[0] == 0
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
 
     # Post-assertion cleanup
     pip_raw_activity.table.truncate()
@@ -28,8 +36,10 @@ class TestPipes(TestCase):
     pip_raw_activity.execute()
 
     # Assert transformer pipe works as expected
-    passed, _, _ = pip_con_activity.execute()
+    passed, failed, quarantined = pip_con_activity.execute()
     assert passed.shape[0] == 3
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
 
     # Post-assertion cleanup
     pip_raw_activity.table.truncate()

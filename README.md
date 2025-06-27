@@ -121,7 +121,8 @@ It currently supports ingesting these formats:
 
 1. JSON
 2. Excel
-3. String payload
+3. CSV
+4. String payload
 
 An instance can get passed into a `Pipe` to ingest data into a `Table`.
 

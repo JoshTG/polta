@@ -178,6 +178,8 @@ class Ingester:
     """
     if self.simple_payload:
       return self._run_simple_load(df)
+    elif self.raw_file_type.value == RawFileType.CSV.value:
+      return self._run_csv_load(df)
     elif self.raw_file_type.value == RawFileType.JSON.value:
       return self._run_json_load(df)
     elif self.raw_file_type.value == RawFileType.EXCEL.value:
@@ -248,8 +250,42 @@ class Ingester:
       .drop('payload')
     )
     return df
+  
+  def _run_csv_load(self, df: DataFrame) -> DataFrame:
+    """Executes a CSV load against applicable files
+
+    Args:
+      df (DataFrame): the data with metadata to load
+
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
+    out_df: Optional[DataFrame] = None
+    for file_path in [r['_file_path'] for r in df.select('_file_path').to_dicts()]:
+      csv_df: DataFrame = (pl
+        .read_csv(
+          source=file_path,
+          schema=self.raw_polars_schema,
+          try_parse_dates=True
+        )
+        .with_columns([pl.lit(file_path).alias('_file_path')])
+      )
+      if out_df is None:
+        out_df: DataFrame = csv_df
+      else:
+        out_df: DataFrame = pl.concat([out_df, csv_df])
+    out_df: DataFrame = out_df.join(df, '_file_path', 'inner')
+    return out_df
 
   def _run_excel_load(self, df: DataFrame) -> DataFrame:
+    """Executes an Excel load against applicable files
+
+    Args:
+      df (DataFrame): the data with metadata to load
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
     return (pl
       .read_excel(
         source=[r['_file_path'] for r in df.select('_file_path').to_dicts()],
