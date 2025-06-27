@@ -101,7 +101,7 @@ class Maps:
       schema (Schema): the original deltalake schema
     
     Returns:
-      schema_polars (dict[str, DataType]): the schema as a dict, compatible with Polars DataFrames
+      schema.polars (dict[str, DataType]): the schema as a dict, compatible with Polars DataFrames
     """
     polars_schema: dict[str, plDataType] = {}
 
@@ -159,3 +159,15 @@ class Maps:
       failure_column (str): the name of the failure column for that quality
     """
     return Maps.QUALITY_TO_FAILURE_COLUMN[quality.value]
+
+  @staticmethod
+  def quality_to_metadata_columns(quality: TableQuality) -> list[Field]:
+    """Converts a table quality to metadata columns for that quality
+  
+    Args:
+      quality (TableQuality): the quality of the table
+    
+    Returns:
+      metadata_columns(list[Field]): the metadata columns for that quality
+    """
+    return Maps.QUALITY_TO_METADATA_COLUMNS[quality.value]

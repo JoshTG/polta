@@ -71,7 +71,7 @@ class Ingester:
     df = self._filter_by_history(df)
 
     if df.is_empty():
-      return {self.table.id: DataFrame([], self.table.schema_polars)}
+      return {self.table.id: DataFrame([], self.table.schema.polars)}
     else:
       return {self.table.id: self._ingest_files(df)}
 

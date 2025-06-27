@@ -7,6 +7,7 @@ from polta.checks import *
 from polta.test import Test
 from polta.enums import CheckAction, TableQuality
 from polta.table import Table
+from polta.table_schema import TableSchema
 from sample.metastore import metastore
 
 

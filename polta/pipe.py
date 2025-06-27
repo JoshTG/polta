@@ -145,7 +145,7 @@ class Pipe:
       df (DataFrame): the conformed DataFrame
     """
     df: DataFrame = self.add_metadata_columns(df)
-    return df.select(*self.table.schema_polars.keys())
+    return df.select(*self.table.schema.polars.keys())
 
   def save(self, df: DataFrame) -> None:
     """Saves a DataFrame into the target Delta Table
@@ -155,7 +155,7 @@ class Pipe:
     """
     self.table.create_if_not_exists(
       table_path=self.table.table_path,
-      schema=self.table.schema_deltalake
+      schema=self.table.schema.deltalake
     )
     print(f'Loading {df.shape[0]} record(s) into {self.table.table_path}')
 
@@ -185,7 +185,7 @@ class Pipe:
           target=self.table.quarantine_path,
           mode='merge',
           delta_merge_options={
-            'predicate': f's.{self.table.failure_column} = t.{self.table.failure_column}',
+            'predicate': f's.{self.table.schema.failure_column} = t.{self.table.schema.failure_column}',
             'source_alias': 's',
             'target_alias': 't'
           }
