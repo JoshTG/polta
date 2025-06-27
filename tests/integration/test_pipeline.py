@@ -62,6 +62,6 @@ class TestPipeline(TestCase):
     for file_path in exported_files:
       assert path.exists(file_path)
       remove(file_path)
-    
+
     # Post-assertion cleanup
     exported_files.clear()

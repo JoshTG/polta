@@ -25,7 +25,7 @@ table: Table = Table(
 ingester: Ingester = Ingester(
   table=table,
   directory_type=DirectoryType.DATED,
-  raw_file_type=RawFileType.JSON
+  raw_file_type=RawFileType.EXCEL
 )
 
 pipe: Pipe = Pipe(ingester)

@@ -17,7 +17,8 @@ table: Table = Table(
   quality=TableQuality.RAW,
   name='activity',
   raw_schema=Schema([
-    Field('payload', 'string')
+    Field('id', 'string'),
+    Field('active_ind', 'boolean')
   ]),
   metastore=metastore
 )
@@ -25,7 +26,7 @@ table: Table = Table(
 ingester: Ingester = Ingester(
   table=table,
   directory_type=DirectoryType.SHALLOW,
-  raw_file_type=RawFileType.JSON,
+  raw_file_type=RawFileType.CSV,
   write_logic=WriteLogic.APPEND
 )
 
