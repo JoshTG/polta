@@ -14,11 +14,11 @@ from tests.unit.testing_data.table import TestingData
 class TestTable(TestCase):
   """Tests Table class"""
   td: TestingData = TestingData()
-  empty_df: DataFrame = DataFrame([], td.table.schema_polars)
+  empty_df: DataFrame = DataFrame([], td.table.schema.polars)
   df_1: DataFrame = DataFrame(td.input_dataset_1)
   df_2: DataFrame = DataFrame(td.input_dataset_2)
-  apply_test_df: DataFrame = DataFrame(td.apply_test_dataset, td.apply_test_table.schema_polars)
-  quarantine_df: DataFrame = DataFrame(td.quarantine_dataset, td.table.quarantine_schema)
+  apply_test_df: DataFrame = DataFrame(td.apply_test_dataset, td.apply_test_table.schema.polars)
+  quarantine_df: DataFrame = DataFrame(td.quarantine_dataset, td.table.schema.quarantine)
 
   def test_create_if_not_exists(self) -> None:
     # Assert method validates input types correctly
@@ -31,7 +31,7 @@ class TestTable(TestCase):
     assert not path.exists(self.td.test_path)
 
     # Create table and ensure it exists
-    Table.create_if_not_exists(self.td.test_path, self.td.table.schema_deltalake)
+    Table.create_if_not_exists(self.td.test_path, self.td.table.schema.deltalake)
     assert path.exists(self.td.test_path)
     assert DeltaTable.is_deltatable(self.td.test_path)
 

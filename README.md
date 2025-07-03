@@ -17,6 +17,7 @@ The existing `polars` and `delta` packages make a great team, but they can be tr
   * By transforming data across layers via a `Transformer`.
   * By exporting the data in a desired format via a `Exporter`.
 * The data are managed in `Tables`, which use `deltalake` and `polars` under the hood.
+* Each `Table` contains a `TableSchema` which wraps the polars and deltalake schemas depending on user need.
 
 ## Terminology
 
@@ -99,7 +100,9 @@ If the data can be conformed easily, it may get loaded from the ingestion zone i
 
 The `Table` is the primary way to read and write data.
 
-It stores data using `deltalake`, and it transforms data using `polars`. Because it integrates two modules together, it has many fields and methods for communicating seamlessly to and fro. For example, every `Table` has readily available a `schema_polars` and `schema_deltalake` object that both represent your table schema.
+It stores data using `deltalake`, and it transforms data using `polars`.
+
+Because `Table` integrates two modules together, it has many fields and methods for communicating seamlessly to and fro. Most importantly, every `Table` has readily available a `TableSchema` object, contained in the `schema` field, which contains the `polars` and `deltalake` versions of the schema that you can use how you wish.
 
 Each raw `Table` has a dedicated ingestion zone located in the `Metastore` to store sources files ready to be loaded into the raw layer.
 
@@ -174,9 +177,9 @@ It currently supports exporting these formats:
 
 ## Pipeline
 
-The `Pipeline` is the primary way to link `Pipe` objects together to create a unified data pipeline.
+The `Pipeline` is the primary way to link `Pipes` together to create a unified data pipeline.
 
-It takes in a list of raw, conformed, canonical, and export `Pipe` objects and executes them sequentially.
+It takes in a list of raw, conformed, canonical, and export `Pipes` and executes them sequentially.
 
 There are two kinds of pipelines you can build:
 

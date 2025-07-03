@@ -15,6 +15,7 @@ from polta.enums import CheckAction, TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
 from polta.maps import Maps
 from polta.metastore import Metastore
+from polta.table_schema import TableSchema
 from polta.types import RawPoltaData
 
 
@@ -28,23 +29,24 @@ class Table:
     name (str): the name of the table
     
   Optional Args:
-    raw_schema (Optional[Schema]): a deltalake schema (default None)
+    raw_schema (Optional[Schema]): the raw table schema (default None)
     metastore (Metastore): The metastore (default Metastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
     tests (list[Test]): test checks before loading any data
   
   Initialized fields:
     id (str): the unique identifier for the table
+    schema (TableSchema): the table schema object
     table_path (str): the absolute path to the Table in the metastore
     ingestion_zone_path (str): the path to the ingestion zone
     state_file_directory (str): the absolute path to the state files directory
     state_file_path (str): the absolute path to the Table state file
-    schema_polars (dict[str, DataType]): the table schema as a Polars object
-    schema_deltalake (Schema): the table schema as a deltalake object
+    schema.polars (dict[str, DataType]): the table schema as a Polars object
+    schema.deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
     merge_predicate (str): the SQL merge predicate for upserts
     quarantine_path (str): the path to the corresponding quarantine table
-    quarantine_schema (Schema): the schema of the corresponding quarantine table
+    schema.quarantine (Schema): the schema of the corresponding quarantine table
     failure_column (str): the column name for identifying failure records
   """
   domain: str
@@ -56,17 +58,13 @@ class Table:
   tests: list[Test] = field(default_factory=lambda: [])
 
   id: str = field(init=False)
+  schema: TableSchema = field(init=False)
   table_path: str = field(init=False)
   ingestion_zone_path: str = field(init=False)
   state_file_directory: str = field(init=False)
   state_file_path: str = field(init=False)
-  schema_polars: dict[str, DataType] = field(init=False)
-  schema_deltalake: Schema = field(init=False)
-  columns: list[str] = field(init=False)
-  merge_predicate: Optional[str] = field(init=False)
   quarantine_path: str = field(init=False)
-  quarantine_schema: Schema = field(init=False)
-  failure_column: str = field(init=False)
+  merge_predicate: Optional[str] = field(init=False)
 
   def __post_init__(self) -> None:
     self.id: str = '.'.join([
@@ -74,6 +72,7 @@ class Table:
       self.quality.value,
       self.name
     ])
+    self.schema: TableSchema = TableSchema(self.raw_schema, self.quality)
     self.table_path: str = path.join(
       self.metastore.tables_directory,
       self.domain,
@@ -97,16 +96,6 @@ class Table:
       self.state_file_directory,
       '.STATE'
     )
-    self.schema_deltalake, self.schema_polars = self.build_schemas_from_raw(self.quality, self.raw_schema)
-    self.columns: list[str] = list(self.schema_polars.keys())
-
-    if self.primary_keys:
-      self.merge_predicate: Optional[str] = Table.build_merge_predicate(self.primary_keys)
-    else:
-      self.merge_predicate: Optional[str] = None
-    if self.quality.value == TableQuality.RAW.value:
-      self._build_ingestion_zone_if_not_exists()
-    
     self.quarantine_path: str = path.join(
       self.metastore.volumes_directory,
       'quarantine',
@@ -114,10 +103,13 @@ class Table:
       self.quality.value,
       self.name
     )
-    self.quarantine_schema: dict[str, DataType] = Maps.deltalake_schema_to_polars_schema(
-      Schema(self.schema_deltalake.fields + [Field('failed_test', 'string')])
-    )
-    self.failure_column: str = Maps.quality_to_failure_column(self.quality)
+
+    if self.primary_keys:
+      self.merge_predicate: Optional[str] = Table.build_merge_predicate(self.primary_keys)
+    else:
+      self.merge_predicate: Optional[str] = None
+    if self.quality.value == TableQuality.RAW.value:
+      self._build_ingestion_zone_if_not_exists()
 
   @staticmethod
   def create_if_not_exists(table_path: str, schema: Schema) -> None:
@@ -144,23 +136,6 @@ class Table:
     )   
 
   @staticmethod
-  def build_schemas_from_raw(quality: TableQuality, raw_schema: Optional[Schema]) -> \
-                        Tuple[Schema, dict[str, DataType]]:
-    """Takes a raw deltalake schema and populates deltalake and polars schemas from it
-    
-    Args:
-      quality (TableQuality): the quality of the table, to decide proper metadata
-      raw_schema (Optional[Schema]): the raw schema, if applicable
-    
-    Returns:
-      deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
-    """
-    metadata_schema: Schema = Maps.QUALITY_TO_METADATA_COLUMNS[quality.value]
-    fields: list[Field] = metadata_schema + (raw_schema.fields if raw_schema is not None else [])
-    dl_schema: Schema = Schema(fields)
-    return dl_schema, Maps.deltalake_schema_to_polars_schema(dl_schema)
-
-  @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:
     """Constructs a merge predicate based on the source/target aliases and primary keys
 
@@ -182,9 +157,9 @@ class Table:
       df (DataFrame): the DataFrame representation
     """
     if isinstance(data, dict):
-      return DataFrame([data], self.schema_polars)
+      return DataFrame([data], self.schema.polars)
     elif isinstance(data, list) and all(isinstance(r, dict) for r in data):
-      return DataFrame(data, self.schema_polars)
+      return DataFrame(data, self.schema.polars)
     elif isinstance(data, DataFrame):
       return data
     else:
@@ -200,9 +175,9 @@ class Table:
       passed, failed, quarantined (DataFrame): the resulting DataFrames
     """
     # Build three empty DataFrames to hold results
-    passed: DataFrame = DataFrame([], self.schema_polars)
-    failed: DataFrame = DataFrame([], self.quarantine_schema)
-    quarantined: DataFrame = DataFrame([], self.quarantine_schema)
+    passed: DataFrame = DataFrame([], self.schema.polars)
+    failed: DataFrame = DataFrame([], self.schema.quarantine)
+    quarantined: DataFrame = DataFrame([], self.schema.quarantine)
 
     # Skip all tests they do not exist
     if not self.tests:
@@ -232,7 +207,7 @@ class Table:
 
   def truncate(self) -> None:
     """Truncates the table"""
-    self.overwrite(DataFrame([], self.schema_polars))
+    self.overwrite(DataFrame([], self.schema.polars))
 
   def drop(self) -> None:
     """Drops the table"""
@@ -243,7 +218,7 @@ class Table:
     """Clears the quarantine table if it exists"""
     if path.exists(self.quarantine_path) and \
      DeltaTable.is_deltatable(self.quarantine_path):
-      df: DataFrame = DataFrame([], self.quarantine_schema)
+      df: DataFrame = DataFrame([], self.schema.quarantine)
       df.write_delta(self.quarantine_path, mode='overwrite')
 
   def get_as_delta_table(self) -> DeltaTable:
@@ -252,7 +227,7 @@ class Table:
     Returns:
       delta_table (DeltaTable): the resulting Delta Table
     """
-    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+    self.create_if_not_exists(self.table_path, self.schema.deltalake)
     return DeltaTable(self.table_path)
 
   def get(self, filter_conditions: dict = {}, partition_by: list[str] = [], order_by: list[str] = [],
@@ -299,7 +274,7 @@ class Table:
       raise TypeError('Error: all values in sort_by must be of type <str>')
 
     # Create the Delta Table if it does not exist
-    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+    self.create_if_not_exists(self.table_path, self.schema.deltalake)
 
     # Retrieve Delta Table as a Polars DataFrame
     df: DataFrame = pl.read_delta(self.table_path)
@@ -344,7 +319,7 @@ class Table:
       raise ValueError('Error: Delta Table does not have primary keys')
 
     # Ensure table exists first
-    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+    self.create_if_not_exists(self.table_path, self.schema.deltalake)
 
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
@@ -374,7 +349,7 @@ class Table:
       data (RawPoltaData): the data with which to overwrite
     """
     # Ensure table exists first
-    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+    self.create_if_not_exists(self.table_path, self.schema.deltalake)
 
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
@@ -382,7 +357,7 @@ class Table:
     df.write_delta(
       target=self.table_path,
       mode='overwrite'
-    )      
+    )
     self.touch_state_file()
 
   def append(self, data: RawPoltaData) -> None:
@@ -392,7 +367,7 @@ class Table:
       data (RawPoltaData): the data with which to append
     """
     # Ensure table exists first
-    self.create_if_not_exists(self.table_path, self.schema_deltalake)
+    self.create_if_not_exists(self.table_path, self.schema.deltalake)
 
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)

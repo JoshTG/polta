@@ -119,7 +119,7 @@ class TestingData:
         'category': None
       }
     ],
-    schema=apply_test_table.schema_polars
+    schema=apply_test_table.schema.polars
   )
   def apply_test_load_logic() -> dict[str, DataFrame]:
     return {}
