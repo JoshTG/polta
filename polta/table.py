@@ -136,23 +136,6 @@ class Table:
     )   
 
   @staticmethod
-  def build_schemas_from_raw(quality: TableQuality, raw_schema: Optional[Schema]) -> \
-                        Tuple[Schema, dict[str, DataType]]:
-    """Takes a raw deltalake schema and populates deltalake and polars schemas from it
-    
-    Args:
-      quality (TableQuality): the quality of the table, to decide proper metadata
-      raw_schema (Optional[Schema]): the raw schema, if applicable
-    
-    Returns:
-      deltalake_schema, polars_schema (Tuple[Schema, dict[str, DataType]]): the resulting schemas
-    """
-    metadata_schema: Schema = Maps.QUALITY_TO_METADATA_COLUMNS[quality.value]
-    fields: list[Field] = metadata_schema + (raw_schema.fields if raw_schema is not None else [])
-    dl_schema: Schema = Schema(fields)
-    return dl_schema, Maps.deltalake_schema_to_polars_schema(dl_schema)
-
-  @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:
     """Constructs a merge predicate based on the source/target aliases and primary keys
 

@@ -2,6 +2,9 @@
 .venv
 .vscode
 
+# Package files
+dist/
+
 # Test metastore files
 **/test_metastore/tables/
 **/test_metastore/volumes/state/
