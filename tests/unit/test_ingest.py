@@ -51,10 +51,12 @@ class TestIngest(TestCase):
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 3
     assert '_raw_id' in df.columns
+    assert '_conformed_id' in df.columns
+    assert '_conformed_ts' in df.columns
     assert '_ingested_ts' in df.columns
     assert '_file_path' in df.columns
     assert '_file_name' in df.columns
     assert '_file_mod_ts' in df.columns
     assert 'id' in df.columns
     assert 'name' in df.columns
-    assert len(df.columns) == 7
+    assert len(df.columns) == 9

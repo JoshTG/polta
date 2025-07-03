@@ -31,10 +31,8 @@ class Ingester:
   
   Initialized Fields:
     pipe_type (PipeType): what kind of pipe this is (i.e., INGESTER)
-    raw_polars_schema (dict[str, DataType]): a polars version of the table's raw schema
     payload_field (Field): the deltalake field of the payload column
     simple_payload (bool): indicates whether the load is simple
-    metadata_schema (Schema): the deltalake fields for the raw layer
     payload_schema (dict[str, DataType]): the polars fields for a simple ingestion
   """
   table: Table
@@ -43,22 +41,17 @@ class Ingester:
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
   pipe_type: PipeType = field(init=False)
-  raw_polars_schema: dict[str, DataType] = field(init=False)
   payload_field: Field = field(init=False)
   simple_payload: bool = field(init=False)
-  metadata_schema: Schema = field(init=False)
   payload_schema: dict[str, DataType] = field(init=False)
   excel_engine: ExcelSpreadsheetEngine = field(default_factory=lambda: 'openpyxl')
 
   def __post_init__(self) -> None:
     self.pipe_type: PipeType = PipeType.INGESTER
-    self.raw_polars_schema: dict[str, DataType] = Maps \
-      .deltalake_schema_to_polars_schema(self.table.raw_schema)
     self.payload_field: Field = Field('payload', 'string')
-    self.simple_payload: bool = self.table.raw_schema.fields == [self.payload_field]
-    self.metadata_schema: list[Field] = Maps.QUALITY_TO_METADATA_COLUMNS['raw']
+    self.simple_payload: bool = self.table.schema.raw_deltalake.fields == [self.payload_field]
     self.payload_schema: dict[str, DataType] = Maps.deltalake_schema_to_polars_schema(
-      schema=Schema(self.metadata_schema + [self.payload_field])
+      schema=Schema(self.table.schema.metadata_fields + [self.payload_field])
     )
 
   def get_dfs(self) -> dict[str, DataFrame]:
@@ -238,14 +231,14 @@ class Ingester:
         pl.col('_file_path')
           .map_elements(
             function=file_path_to_json,
-            return_dtype=List(Struct(self.raw_polars_schema))
+            return_dtype=List(Struct(self.table.schema.raw_polars))
           )
           .alias('payload')
       ])
       .explode('payload')
       .with_columns([
         pl.col('payload').struct.field(f).alias(f)
-        for f in self.raw_polars_schema.keys()
+        for f in self.table.schema.raw_polars.keys()
       ])
       .drop('payload')
     )
@@ -265,7 +258,7 @@ class Ingester:
       csv_df: DataFrame = (pl
         .read_csv(
           source=file_path,
-          schema=self.raw_polars_schema,
+          schema=self.table.schema.raw_polars,
           try_parse_dates=True
         )
         .with_columns([pl.lit(file_path).alias('_file_path')])
@@ -294,7 +287,7 @@ class Ingester:
         engine=self.excel_engine,
         include_file_paths='_file_path',
         drop_empty_rows=True,
-        schema_overrides=self.raw_polars_schema
+        schema_overrides=self.table.schema.raw_polars
       )
       .join(df, '_file_path', 'inner')
     )
