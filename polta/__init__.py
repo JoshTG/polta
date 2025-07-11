@@ -10,6 +10,7 @@ from .maps import Maps
 from .metastore import Metastore
 from .pipe import Pipe
 from .pipeline import Pipeline
+from .table_schema import TableSchema
 from .table import Table
 from .test import Test
 from .transformer import Transformer
@@ -26,6 +27,7 @@ __all__ = [
   'Pipe',
   'Pipeline',
   'Table',
+  'TableSchema',
   'Test',
   'Transformer',
   'types',

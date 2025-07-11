@@ -1,3 +1,4 @@
+from deltalake import DeltaTable, Schema
 from os import path
 from shutil import rmtree
 from unittest import TestCase
@@ -5,6 +6,7 @@ from unittest import TestCase
 from polta.enums import TableQuality
 from polta.exceptions import DomainDoesNotExist
 from polta.metastore import Metastore
+from polta.table import Table
 from sample.metastore import metastore, metastore_init
 from sample.standard.pipelines.user import pip_can_user
 from tests.unit.testing_data.metastore import TestingData
@@ -35,6 +37,37 @@ class TestMetastore(TestCase):
     assert path.exists(self.pm_init.tables_directory)
     assert path.exists(self.pm_init.volumes_directory)
 
+  def test_create_table_if_not_exists(self) -> None:
+    # Assert method validates input types correctly
+    self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 2, Schema([]))
+    self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', 2)
+    self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', Schema([]), 2)
+    self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', Schema([]), [2])
+
+    # Clear table if it exists
+    if path.exists(self.td.test_path):
+      rmtree(self.td.test_path)
+    assert not path.exists(self.td.test_path)
+
+    # Create table and ensure it exists
+    self.pm_init.create_table_if_not_exists(
+      table_path=self.td.test_path,
+      schema=self.td.table.schema.deltalake
+    )
+    assert path.exists(self.td.test_path)
+    assert DeltaTable.is_deltatable(self.td.test_path)
+
+    # Create again and ensure it returns
+    self.pm_init.create_table_if_not_exists(
+      table_path=self.td.test_path,
+      schema=self.td.table.schema.deltalake
+    )
+    assert path.exists(self.td.test_path)
+    assert DeltaTable.is_deltatable(self.td.test_path)
+
+    # Post-assertion cleanup
+    rmtree(self.td.test_path)
+
   def test_list_domains(self) -> None:
     # Assert metastore can return the list of domains
     domains: list[str] = self.pm.list_domains()
@@ -56,4 +89,3 @@ class TestMetastore(TestCase):
     # Assert metastore can determine quality existence correctly
     for domain, quality, expected_result in self.td.quality_existence_checks:
       assert self.pm.quality_exists(domain, quality) == expected_result
-  

@@ -128,7 +128,6 @@ class Table:
     if DeltaTable.is_deltatable(table_path):
       return
 
-    makedirs(table_path, exist_ok=True)
     dt: DeltaTable = DeltaTable.create(table_path, schema, mode='ignore')
     dt.alter.add_feature(
       feature=TableFeatures.TimestampWithoutTimezone,
@@ -208,6 +207,7 @@ class Table:
   def truncate(self) -> None:
     """Truncates the table"""
     self.overwrite(DataFrame([], self.schema.polars))
+    self.metastore.clear_file_history(self.id)
 
   def drop(self) -> None:
     """Drops the table"""

@@ -134,21 +134,7 @@ class Ingester:
     paths: DataFrame = DataFrame(metadata, schema=self.payload_schema)
 
     # Retrieve the history from the target table
-    hx: DataFrame = (self.table
-      .get(select=['_file_path', '_file_mod_ts'], unique=True)
-      .group_by('_file_path')
-      .agg(pl.col('_file_mod_ts').max())
-    )
-
-    # If there is a quarantine table, add the history from there, too
-    if DeltaTable.is_deltatable(self.table.quarantine_path):
-      hx_quarantine: DataFrame = (pl.read_delta(self.table.quarantine_path)
-        .select('_file_path', '_file_mod_ts')
-        .unique()
-        .group_by('_file_path')
-        .agg(pl.col('_file_mod_ts').max())
-      )
-      hx: DataFrame = pl.concat([hx, hx_quarantine]).unique()
+    hx: DataFrame = self.table.metastore.get_file_history(self.table.id)
 
     # Filter the paths by the temporary history DataFrame
     return (paths
@@ -170,15 +156,20 @@ class Ingester:
       df (DataFrame): the ingested files
     """
     if self.simple_payload:
-      return self._run_simple_load(df)
+      df: DataFrame = self._run_simple_load(df)
     elif self.raw_file_type.value == RawFileType.CSV.value:
-      return self._run_csv_load(df)
+      df: DataFrame = self._run_csv_load(df)
     elif self.raw_file_type.value == RawFileType.JSON.value:
-      return self._run_json_load(df)
+      df: DataFrame = self._run_json_load(df)
     elif self.raw_file_type.value == RawFileType.EXCEL.value:
-      return self._run_excel_load(df)
+      df: DataFrame = self._run_excel_load(df)
     else:
       raise NotImplementedError(self.raw_file_type)
+
+    # Save the ingestion history
+    self.table.metastore.write_file_history(self.table.id, df)
+
+    return df
 
   def _get_file_metadata(self, file_path: str) -> RawMetadata:
     """Retrieves file metadata from a file
