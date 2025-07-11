@@ -2,7 +2,7 @@ import polars as pl
 
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
-from deltalake import DeltaTable, Field, Schema
+from deltalake import Field, Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct

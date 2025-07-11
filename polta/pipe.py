@@ -3,7 +3,6 @@ import polars as pl
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
 from deltalake import DeltaTable
-from os import makedirs
 from polars import DataFrame
 from typing import Optional, Union
 from uuid import uuid4
