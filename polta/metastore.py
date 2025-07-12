@@ -2,34 +2,15 @@ import polars as pl
 
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
-from deltalake import DeltaTable, Field, Schema, TableFeatures
+from deltalake import DeltaTable, Schema, TableFeatures
 from os import getcwd, listdir, makedirs, path
 from polars import DataFrame
 from typing import Any
 
 from polta.enums import TableQuality
 from polta.exceptions import DomainDoesNotExist
+from polta.schemas.system import file_history, pipe_history
 
-
-# System table schemas
-file_history_schema: Schema = Schema([
-  Field('table_id', 'string'),
-  Field('_file_path', 'string'),
-  Field('_file_mod_ts', 'timestamp'),
-  Field('_ingested_ts', 'timestamp')
-])
-pipe_history_schema: Schema = Schema([
-  Field('pipe_id', 'string'),
-  Field('execution_start_ts', 'timestamp'),
-  Field('execution_end_ts', 'timestamp'),
-  Field('execution_duration', 'float'),
-  Field('strict', 'boolean'),
-  Field('succeeded', 'boolean'),
-  Field('total_count', 'long'),
-  Field('passed_count', 'long'),
-  Field('failed_count', 'long'),
-  Field('quarantined_count', 'long')
-])
 
 @dataclass
 class Metastore:
@@ -67,12 +48,12 @@ class Metastore:
     # Initialize the system tables
     self.create_table_if_not_exists(
       table_path=self.file_history_path,
-      schema=file_history_schema,
+      schema=file_history,
       partition_by=['table_id']
     )
     self.create_table_if_not_exists(
       table_path=self.pipe_history_path,
-      schema=pipe_history_schema,
+      schema=pipe_history,
       partition_by=['pipe_id']
     )
 
@@ -202,8 +183,8 @@ class Metastore:
     DeltaTable(self.file_history_path).delete(f'table_id = \'{table_id}\'')
 
   def write_pipe_history(self, pipe_id: str, execution_start_ts: datetime, strict: bool,
-                         succeeded: bool, passed_count: int, failed_count: int,
-                         quarantined_count: int) -> None:
+                         succeeded: bool, in_memory: bool, passed_count: int,
+                         failed_count: int, quarantined_count: int) -> None:
     """Writes a record to the pipe_history system table
 
     Args:
@@ -211,6 +192,7 @@ class Metastore:
       execution_start_ts (datetime): when the pipe began
       strict (bool): indicates whether the pipe ran in strict mode
       succeeded (bool): indicates whether the pipe succeeded
+      in_memory (bool): indicates whether the pipe ran in-memory
       passed_count (int): the number of records that passed
       failed_count (int): the number of records that failed
       quarantined_count (int): the number of records that got quarantined
@@ -223,6 +205,7 @@ class Metastore:
       'execution_duration': (now - execution_start_ts).total_seconds(),
       'strict': strict,
       'succeeded': succeeded,
+      'in_memory': in_memory,
       'total_count': passed_count + failed_count + quarantined_count,
       'passed_count': passed_count,
       'failed_count': failed_count,
@@ -232,3 +215,17 @@ class Metastore:
       target=self.pipe_history_path,
       mode='append'
     )
+
+  def get_pipe_history(self, pipe_id: str = '') -> DataFrame:
+    """Retrieves the pipe_history system table
+    
+    Args:
+      pipe_id (str): if applicable, the unique ID of the pipe
+    
+    Returns:
+      df (DataFrame): the pipe_history DataFrame
+    """
+    df: DataFrame = pl.read_delta(self.pipe_history_path)
+    if pipe_id:
+      df: DataFrame = df.filter(pl.col('pipe_id').eq(pipe_id))
+    return df

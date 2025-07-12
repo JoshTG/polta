@@ -1,15 +1,15 @@
 from deltalake import DeltaTable, Schema
 from os import path
+from polars import DataFrame
 from shutil import rmtree
 from unittest import TestCase
 
 from polta.enums import TableQuality
 from polta.exceptions import DomainDoesNotExist
-from polta.metastore import Metastore
-from polta.table import Table
+from polta.metastore import Metastore, pipe_history
 from sample.metastore import metastore, metastore_init
 from sample.standard.pipelines.user import pip_can_user
-from tests.unit.testing_data.metastore import TestingData
+from tests.testing_data.metastore import TestingData
 
 
 class TestMetastore(TestCase):
@@ -89,3 +89,16 @@ class TestMetastore(TestCase):
     # Assert metastore can determine quality existence correctly
     for domain, quality, expected_result in self.td.quality_existence_checks:
       assert self.pm.quality_exists(domain, quality) == expected_result
+
+  def test_pipe_history(self) -> None:
+    # Retrieve all of the pipe history as a DataFrame
+    df: DataFrame = self.pm.get_pipe_history()
+    assert isinstance(df, DataFrame)
+    for field in pipe_history.fields:
+      assert field.name in df.columns
+
+    # Retrieve the pipe history table of a specific pipe as a DataFrame
+    df: DataFrame = self.pm.get_pipe_history('nonexistent_pipe')
+    assert isinstance(df, DataFrame)
+    for field in pipe_history.fields:
+      assert field.name in df.columns

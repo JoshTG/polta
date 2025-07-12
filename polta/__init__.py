@@ -1,3 +1,4 @@
+from . import checks
 from . import enums
 from . import exceptions
 from . import types
@@ -18,6 +19,7 @@ from .transformer import Transformer
 
 __all__ = [
   'Check',
+  'checks',
   'enums',
   'exceptions',
   'Exporter',

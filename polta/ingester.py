@@ -12,6 +12,7 @@ from uuid import uuid4
 from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.maps import Maps
+from polta.schemas.ingester import payload
 from polta.table import Table
 from polta.types import ExcelSpreadsheetEngine, RawMetadata
 from polta.udfs import file_path_to_json, file_path_to_payload
@@ -31,7 +32,6 @@ class Ingester:
   
   Initialized Fields:
     pipe_type (PipeType): what kind of pipe this is (i.e., INGESTER)
-    payload_field (Field): the deltalake field of the payload column
     simple_payload (bool): indicates whether the load is simple
     payload_schema (dict[str, DataType]): the polars fields for a simple ingestion
   """
@@ -41,17 +41,15 @@ class Ingester:
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
   pipe_type: PipeType = field(init=False)
-  payload_field: Field = field(init=False)
   simple_payload: bool = field(init=False)
   payload_schema: dict[str, DataType] = field(init=False)
   excel_engine: ExcelSpreadsheetEngine = field(default_factory=lambda: 'openpyxl')
 
   def __post_init__(self) -> None:
     self.pipe_type: PipeType = PipeType.INGESTER
-    self.payload_field: Field = Field('payload', 'string')
-    self.simple_payload: bool = self.table.schema.raw_deltalake.fields == [self.payload_field]
+    self.simple_payload: bool = self.table.schema.raw_deltalake.fields == payload.fields
     self.payload_schema: dict[str, DataType] = Maps.deltalake_schema_to_polars_schema(
-      schema=Schema(self.table.schema.metadata_fields + [self.payload_field])
+      schema=Schema(self.table.schema.metadata_fields + payload.fields)
     )
 
   def get_dfs(self) -> dict[str, DataFrame]:

@@ -8,7 +8,7 @@ from polta.ingester import Ingester
 from polta.pipe import Pipe
 from sample.standard.raw.activity import \
   ingester as ing_raw_activity
-from tests.unit.testing_data.ingester import TestingData
+from tests.testing_data.ingester import TestingData
 
 
 class TestIngester(TestCase):

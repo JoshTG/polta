@@ -104,6 +104,7 @@ class Pipe:
       execution_start_ts=execution_start,
       strict=strict,
       succeeded=succeeded,
+      in_memory=in_memory,
       passed_count=passed.shape[0],
       failed_count=failed.shape[0],
       quarantined_count=quarantined.shape[0]
