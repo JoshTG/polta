@@ -2,7 +2,7 @@ from json import dumps
 from unittest import TestCase
 
 from polta.serializers import json
-from tests.unit.testing_data.serializers import TestingData
+from tests.testing_data.serializers import TestingData
 
 
 class TestSerializers(TestCase):

@@ -15,7 +15,7 @@ class Transformer:
   Positional Args:
     table (Table): the target Table
     load_logic (FunctionType): a method to load the source DataFrames
-    transform_logic (Union[FunctionType, str]): a method to transform the DataFrames, or a SQL query
+    transform_logic (Union[FunctionType, str]): a method/query to transform the DataFrames
   
   Optional Args:
     write_logic (WriteLogic): how to write to a Table (default APPEND)

@@ -4,6 +4,7 @@ from polars.datatypes import DataType
 
 from polta.enums import TableQuality
 from polta.maps import Maps
+from polta.schemas.table import failed_test
 
 
 @dataclass
@@ -49,7 +50,7 @@ class TableSchema:
       .deltalake_schema_to_polars_schema(self.deltalake)
     self.quarantine: dict[str, DataType] = Maps \
       .deltalake_schema_to_polars_schema(
-        Schema(self.deltalake.fields + [Field('failed_test', 'string')])
+        Schema(self.deltalake.fields + failed_test.fields)
       )
     self.failure_column: str = Maps.quality_to_failure_column(self.quality)
 

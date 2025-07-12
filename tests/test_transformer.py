@@ -6,7 +6,7 @@ from polta.transformer import Transformer
 from sample.standard.conformed.activity import \
   transformer as tra_con_activity
 from sample.standard.raw.activity import table as tab_raw_activity
-from tests.unit.testing_data.transformer import TestingData
+from tests.testing_data.transformer import TestingData
 
 
 class TestTransformer(TestCase):

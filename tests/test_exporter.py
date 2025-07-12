@@ -2,7 +2,7 @@ from os import path, remove
 from polars import DataFrame
 from unittest import TestCase
 
-from tests.unit.testing_data.exporter import TestingData
+from tests.testing_data.exporter import TestingData
 
 
 class TestExporter(TestCase):

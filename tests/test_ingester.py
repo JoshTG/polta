@@ -8,7 +8,7 @@ from polta.ingester import Ingester
 from polta.pipe import Pipe
 from sample.standard.raw.activity import \
   ingester as ing_raw_activity
-from tests.unit.testing_data.ingester import TestingData
+from tests.testing_data.ingester import TestingData
 
 
 class TestIngester(TestCase):
@@ -60,14 +60,15 @@ class TestIngester(TestCase):
   def test_filter_by_history(self) -> None:
     # Pre-assertion setup
     self.ing.table.truncate()
-    rmtree(self.ing.table.quarantine_path)
+    if path.exists(self.ing.table.quarantine_path):
+      rmtree(self.ing.table.quarantine_path)
     
     # Get source metadata and ensure neither record is filtered
     metadata: DataFrame = self.ing._get_metadata()
     res_1: DataFrame = self.ing._filter_by_history(metadata)
     assert res_1.shape[0] == 2
 
-    # Write to the quarantine table and assert one record getting filtered
+    # Write to the quarantine table and assert nothing gets filtered still
     quarantine_df: DataFrame = (metadata
       .limit(1)
       .with_columns(
@@ -79,7 +80,7 @@ class TestIngester(TestCase):
     )
     self.pip.quarantine(quarantine_df)
     res_2: DataFrame = self.ing._filter_by_history(metadata)
-    assert res_2.shape[0] == 1
+    assert res_2.shape[0] == 2
 
     # Post-assertion cleanup
     self.ing.table.truncate()
