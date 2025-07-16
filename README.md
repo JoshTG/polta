@@ -107,15 +107,11 @@ Because `Table` integrates two modules together, it has many fields and methods 
 
 Each raw `Table` has a dedicated ingestion zone located in the `Metastore` to store sources files ready to be loaded into the raw layer.
 
-> In this repository, a `Table` alias is formatted as `tab_<quality-abbreviation>_<table-name>` (e.g., `tab_con_user`).
-
 ## Pipe
 
 The `Pipe` is the primary way to transform data from one location to another in a new format.
 
 Currently, there are three kinds of supported pipes, each described below.
-
-> In this repository, a `Pipe` alias is formatted as `pip_<quality-abbreviation>_<target-table-name>` (e.g., `pip_con_user`).
 
 ### Ingester
 
