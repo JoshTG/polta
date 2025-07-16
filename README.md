@@ -4,18 +4,19 @@ _Data engineering tool combining Polars transformations with Delta tables/lakes.
 ![PyTest](https://github.com/JoshTG/polta/actions/workflows/run-pytest.yml/badge.svg) [![PyPI version](https://img.shields.io/pypi/v/polta.svg)](https://pypi.org/project/polta/)
 
 # Core Concepts
+
 The `polta` package allows you to declare simple building blocks that interact with each other to form small-to-medium-scale data pipelines.
 
-The existing `polars` and `delta` packages make a great team, but they can be tricky to interact with at times. The `polta` package aims to provide a unified wrapper for them, along with some custom homebrewed tools and objects, so that moving and managing data across layers of abstraction is intuitive and resilient.
+In the Python ecosystem broadly, the existing `polars` and `delta` packages make a great team, but they can be tricky to interact with at times. The `polta` package aims to provide a unified wrapper for them, along with some custom homebrewed tools and objects, so that moving and managing data across layers of abstraction is intuitive and resilient.
 
 ## At a Glance
 
 * A `Metastore` manages data in a uniform and consistent manner for `Pipelines`.
 * A `Pipeline` connects `Pipes` together into a uniform execution plan.
 * Each `Pipe` takes data from one location, transforms it, and saves it into another location. It does so in one of three ways:
-  * By ingesting source data via a `Ingester`.
+  * By ingesting source data via an `Ingester`.
   * By transforming data across layers via a `Transformer`.
-  * By exporting the data in a desired format via a `Exporter`.
+  * By exporting the data in a desired format via an `Exporter`.
 * The data are managed in `Tables`, which use `deltalake` and `polars` under the hood.
 * Each `Table` contains a `TableSchema` which wraps the polars and deltalake schemas depending on user need.
 
@@ -106,15 +107,11 @@ Because `Table` integrates two modules together, it has many fields and methods 
 
 Each raw `Table` has a dedicated ingestion zone located in the `Metastore` to store sources files ready to be loaded into the raw layer.
 
-> In this repository, a `Table` alias is formatted as `tab_<quality-abbreviation>_<table-name>` (e.g., `tab_con_user`).
-
 ## Pipe
 
 The `Pipe` is the primary way to transform data from one location to another in a new format.
 
 Currently, there are three kinds of supported pipes, each described below.
-
-> In this repository, a `Pipe` alias is formatted as `pip_<quality-abbreviation>_<target-table-name>` (e.g., `pip_con_user`).
 
 ### Ingester
 
@@ -239,7 +236,7 @@ poetry run coverage report -m
 
 # Usage
 
-Below are sample code snippets to show basic usage. For full sample pipelines, consult the `sample` directory in the repository. These tables, pipes, and pipeline get used in the integration test which is located in the `tests/integration/test_pipeline.py` pytest file.
+Below are sample code snippets to show basic usage. For full sample pipelines, consult the `sample` directory in the repository. These tables, pipes, and pipeline get used in the unit test which is located in the `tests/test_pipeline.py` pytest file.
 
 Below is a diagram of the basic pipeline architecture with these features:
 
@@ -441,7 +438,7 @@ Below are the top-level packages with their licenses.
 | [ipykernel](https://github.com/ipython/ipykernel) | >=6.29.5, <6.30.0 | Creates Jupyter notebooks for ad hoc analytics | BSD-3-Clause License |
 | [openpyxl](https://foss.heptapod.net/openpyxl/openpyxl) | >=3.1.5, <3.2.0 | The underlying engine for pl.read_excel() | MIT License |
 | [polars](https://github.com/pola-rs/polars) | >=1.30.0, <1.31.0 | Executes DataFrame transformation | MIT License |
-| [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit/integration testing | MIT License |
+| [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit testing | MIT License |
 | [pytest-cov](https://github.com/pytest-dev/pytest-cov) | >=6.2.1, <6.3.0 | Applies test coverage to pytest runs | MIT License |
 | [tzdata](https://github.com/python/tzdata) | >=2025.2, <2026.1 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
 
@@ -454,7 +451,7 @@ To contribute, follow these steps:
 1. Clone the repository into your local machine.
 2. Create a descriptive feature branch.
 3. Make the desired changes.
-4. Fully test the desired changes using the `unit` and `integration` test directories in the `tests` directory. Ensure you have 100% test coverage.
+4. Fully test the desired changes using `test` directory. Ensure you have 100% test coverage.
 5. Uptick the `poetry` project version appropriately using standard semantic versioning.
 6. Create a merge request into the `main` branch of the official `polta` project and assign it initially to @JoshTG.
 7. Once the merge request is approved and merged, an administrator will schedule a release cycle and deploy the changes using a new release tag.

@@ -17,6 +17,11 @@ from typing import Optional, Union
 
 from polta.enums import TableQuality
 from polta.exceptions import DataTypeNotRecognized
+from polta.schemas.table import (
+  raw_metadata,
+  conformed_metadata,
+  canonical_metadata
+)
 
 
 class Maps:
@@ -42,29 +47,9 @@ class Maps:
     Datetime(time_zone='UTC'): 'timestamp'
   }
   QUALITY_TO_METADATA_COLUMNS: dict[str, list[Field]] = {
-    TableQuality.RAW.value: [
-      Field('_raw_id', 'string'),
-      Field('_ingested_ts', 'timestamp'),
-      Field('_file_path', 'string'),
-      Field('_file_name', 'string'),
-      Field('_file_mod_ts', 'timestamp')
-    ],
-    TableQuality.CONFORMED.value: [
-      Field('_raw_id', 'string'),
-      Field('_conformed_id', 'string'),
-      Field('_conformed_ts', 'timestamp'),
-      Field('_ingested_ts', 'timestamp'),
-      Field('_file_path', 'string'),
-      Field('_file_name', 'string'),
-      Field('_file_mod_ts', 'timestamp')
-    ],
-    TableQuality.CANONICAL.value: [
-      Field('_raw_id', 'string'),
-      Field('_conformed_id', 'string'),
-      Field('_canonicalized_id', 'string'),
-      Field('_created_ts', 'timestamp'),
-      Field('_modified_ts', 'timestamp')
-    ]
+    TableQuality.RAW.value: raw_metadata.fields,
+    TableQuality.CONFORMED.value: conformed_metadata.fields,
+    TableQuality.CANONICAL.value: canonical_metadata.fields
   }
   QUALITY_TO_FAILURE_COLUMN: dict[str, str] = {
     TableQuality.RAW.value: '_raw_id',

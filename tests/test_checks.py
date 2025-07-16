@@ -1,7 +1,7 @@
 from polars import col, DataFrame
 from unittest import TestCase
 
-from tests.unit.testing_data.checks import TestingData
+from tests.testing_data.checks import TestingData
 
 
 class TestChecks(TestCase):

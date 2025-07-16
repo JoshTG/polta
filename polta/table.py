@@ -2,18 +2,16 @@ import polars as pl
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from deltalake import DeltaTable, Field, Schema, TableFeatures
+from deltalake import DeltaTable, Schema, TableFeatures
 from os import makedirs, path
 from pathlib import Path
 from polars import DataFrame
-from polars.datatypes import DataType
 from shutil import rmtree
-from typing import Optional, Tuple
+from typing import Optional
 
 from polta.test import Test
 from polta.enums import CheckAction, TableQuality
 from polta.exceptions import PoltaDataFormatNotRecognized
-from polta.maps import Maps
 from polta.metastore import Metastore
 from polta.table_schema import TableSchema
 from polta.types import RawPoltaData
@@ -128,7 +126,6 @@ class Table:
     if DeltaTable.is_deltatable(table_path):
       return
 
-    makedirs(table_path, exist_ok=True)
     dt: DeltaTable = DeltaTable.create(table_path, schema, mode='ignore')
     dt.alter.add_feature(
       feature=TableFeatures.TimestampWithoutTimezone,
@@ -208,6 +205,7 @@ class Table:
   def truncate(self) -> None:
     """Truncates the table"""
     self.overwrite(DataFrame([], self.schema.polars))
+    self.metastore.clear_file_history(self.id)
 
   def drop(self) -> None:
     """Drops the table"""

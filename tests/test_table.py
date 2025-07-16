@@ -8,7 +8,7 @@ from unittest import TestCase
 
 from polta.exceptions import PoltaDataFormatNotRecognized
 from polta.table import Table
-from tests.unit.testing_data.table import TestingData
+from tests.testing_data.table import TestingData
 
 
 class TestTable(TestCase):

@@ -3,7 +3,6 @@ import polars as pl
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
 from deltalake import DeltaTable
-from os import makedirs
 from polars import DataFrame
 from typing import Optional, Union
 from uuid import uuid4
@@ -60,6 +59,9 @@ class Pipe:
       passed, failed, quarantined (tuple[DataFrame, DataFrame, DataFrame]): the resulting DataFrames
     """
     print(f'Executing pipe {self.id}')
+    
+    # Record when the execution began
+    execution_start: datetime = datetime.now(UTC)
 
     # Load in any extra data before transformation
     dfs.update(self.logic.get_dfs())
@@ -80,9 +82,8 @@ class Pipe:
     if not quarantined.is_empty():
       self.quarantine(quarantined)
 
-    # If strict mode is enabled and dataset is empty, raise EmptyPipe      
-    if strict and passed.is_empty():
-      raise EmptyPipe()
+    # If strict mode is enabled and dataset is empty, raise EmptyPipe
+    succeeded: bool = (not strict) or (not passed.is_empty())
 
     # For standard runs and non-exports, save the passed data
     if isinstance(self.logic, (Ingester, Transformer)) and not in_memory:
@@ -97,7 +98,22 @@ class Pipe:
     print(f'  - Records failed: {failed.shape[0]}')
     print(f'  - Records quarantined: {quarantined.shape[0]}')
 
-    # Return remaining passed records
+    # Log the pipe execution in the system table
+    self.table.metastore.write_pipe_history(
+      pipe_id=self.id,
+      execution_start_ts=execution_start,
+      strict=strict,
+      succeeded=succeeded,
+      in_memory=in_memory,
+      passed_count=passed.shape[0],
+      failed_count=failed.shape[0],
+      quarantined_count=quarantined.shape[0]
+    )
+
+    # If the pipe failed, raise the EmptyPipe exception
+    if not succeeded:
+      raise EmptyPipe()
+    # Otherwise, return remaining passed records
     return passed, failed, quarantined
   
   def add_metadata_columns(self, df: DataFrame) -> DataFrame:

@@ -16,7 +16,7 @@ from sample.standard.conformed.activity import \
   pipe as pip_con_activity
 from sample.standard.export.user import \
   pipe as pip_exp_user
-from tests.unit.testing_data.pipe import TestingData
+from tests.testing_data.pipe import TestingData
 
 
 class TestPipe(TestCase):
@@ -28,8 +28,10 @@ class TestPipe(TestCase):
     pip_raw_activity.table.truncate()
 
     # Execute raw pipe and assert it loaded correctly
-    passed, _, _ = pip_raw_activity.execute()
+    passed, failed, quarantined = pip_raw_activity.execute()
     assert passed.shape[0] == 2
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
 
     # Assert a malformed pipe fails to save
     self.assertRaises(WriteLogicNotRecognized, self.td.malformed_pipe.save, passed)
@@ -46,8 +48,10 @@ class TestPipe(TestCase):
 
     # Execute pipe and assert it loaded correctly
     pip_con_activity.table.truncate()
-    passed, _, _ = pip_con_activity.execute()
+    passed, failed, quarantined = pip_con_activity.execute()
     assert passed.shape[0] == 3
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
   
   def test_exporter_pipe(self) -> None:
     # Pre-assertion cleanup
@@ -77,8 +81,11 @@ class TestPipe(TestCase):
     self.td.overwrite_pipe.table.truncate()
     
     # Run with overwrite and ensure it runs correctly
-    passed, _, _ = self.td.overwrite_pipe.execute()
+    passed, failed, quarantined = self.td.overwrite_pipe.execute()
     assert isinstance(passed, DataFrame)
+    assert passed.shape[0] == 2
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
   
   def test_execute_with_failures(self) -> None:
     # Execute pipe with passed, failed, and quarantined results

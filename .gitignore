@@ -6,11 +6,12 @@
 dist/
 
 # Test metastore files
-**/test_metastore/tables/
-**/test_metastore/volumes/state/
-**/test_metastore/volumes/exports/
-**/test_metastore/volumes/quarantine/
-**/test_metastore_init/
+sample/test_metastore/tables/
+sample/test_metastore/volumes/state/
+sample/test_metastore/volumes/exports/
+sample/test_metastore/volumes/quarantine/
+sample/test_metastore/volumes/system/
+sample/test_metastore_init/
 
 # Generated test/cache files
 .pytest_cache

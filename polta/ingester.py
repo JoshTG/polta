@@ -2,7 +2,7 @@ import polars as pl
 
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
-from deltalake import DeltaTable, Field, Schema
+from deltalake import Field, Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
@@ -12,6 +12,7 @@ from uuid import uuid4
 from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
 from polta.exceptions import DirectoryTypeNotRecognized
 from polta.maps import Maps
+from polta.schemas.ingester import payload
 from polta.table import Table
 from polta.types import ExcelSpreadsheetEngine, RawMetadata
 from polta.udfs import file_path_to_json, file_path_to_payload
@@ -31,7 +32,6 @@ class Ingester:
   
   Initialized Fields:
     pipe_type (PipeType): what kind of pipe this is (i.e., INGESTER)
-    payload_field (Field): the deltalake field of the payload column
     simple_payload (bool): indicates whether the load is simple
     payload_schema (dict[str, DataType]): the polars fields for a simple ingestion
   """
@@ -41,17 +41,15 @@ class Ingester:
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
   pipe_type: PipeType = field(init=False)
-  payload_field: Field = field(init=False)
   simple_payload: bool = field(init=False)
   payload_schema: dict[str, DataType] = field(init=False)
   excel_engine: ExcelSpreadsheetEngine = field(default_factory=lambda: 'openpyxl')
 
   def __post_init__(self) -> None:
     self.pipe_type: PipeType = PipeType.INGESTER
-    self.payload_field: Field = Field('payload', 'string')
-    self.simple_payload: bool = self.table.schema.raw_deltalake.fields == [self.payload_field]
+    self.simple_payload: bool = self.table.schema.raw_deltalake.fields == payload.fields
     self.payload_schema: dict[str, DataType] = Maps.deltalake_schema_to_polars_schema(
-      schema=Schema(self.table.schema.metadata_fields + [self.payload_field])
+      schema=Schema(self.table.schema.metadata_fields + payload.fields)
     )
 
   def get_dfs(self) -> dict[str, DataFrame]:
@@ -134,21 +132,7 @@ class Ingester:
     paths: DataFrame = DataFrame(metadata, schema=self.payload_schema)
 
     # Retrieve the history from the target table
-    hx: DataFrame = (self.table
-      .get(select=['_file_path', '_file_mod_ts'], unique=True)
-      .group_by('_file_path')
-      .agg(pl.col('_file_mod_ts').max())
-    )
-
-    # If there is a quarantine table, add the history from there, too
-    if DeltaTable.is_deltatable(self.table.quarantine_path):
-      hx_quarantine: DataFrame = (pl.read_delta(self.table.quarantine_path)
-        .select('_file_path', '_file_mod_ts')
-        .unique()
-        .group_by('_file_path')
-        .agg(pl.col('_file_mod_ts').max())
-      )
-      hx: DataFrame = pl.concat([hx, hx_quarantine]).unique()
+    hx: DataFrame = self.table.metastore.get_file_history(self.table.id)
 
     # Filter the paths by the temporary history DataFrame
     return (paths
@@ -170,15 +154,20 @@ class Ingester:
       df (DataFrame): the ingested files
     """
     if self.simple_payload:
-      return self._run_simple_load(df)
+      df: DataFrame = self._run_simple_load(df)
     elif self.raw_file_type.value == RawFileType.CSV.value:
-      return self._run_csv_load(df)
+      df: DataFrame = self._run_csv_load(df)
     elif self.raw_file_type.value == RawFileType.JSON.value:
-      return self._run_json_load(df)
+      df: DataFrame = self._run_json_load(df)
     elif self.raw_file_type.value == RawFileType.EXCEL.value:
-      return self._run_excel_load(df)
+      df: DataFrame = self._run_excel_load(df)
     else:
       raise NotImplementedError(self.raw_file_type)
+
+    # Save the ingestion history
+    self.table.metastore.write_file_history(self.table.id, df)
+
+    return df
 
   def _get_file_metadata(self, file_path: str) -> RawMetadata:
     """Retrieves file metadata from a file
