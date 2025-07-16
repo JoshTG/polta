@@ -10,6 +10,9 @@ class TestExporter(TestCase):
   td: TestingData = TestingData()
 
   def test_get_dfs(self) -> None:
+    # Pre-assertion setup
+    self.td.conformed_pipe.execute()
+
     # Execute get_dfs() method
     dfs: dict[str, DataFrame] = self.td.exporter.get_dfs()
 
@@ -17,8 +20,14 @@ class TestExporter(TestCase):
     assert isinstance(dfs, dict)
     assert list(dfs.keys()) == [self.td.exporter.table.id]
     assert isinstance(dfs[self.td.exporter.table.id], DataFrame)
+
+    # Post-assertion cleanup
+    self.td.conformed_pipe.table.truncate()
   
   def test_transform(self) -> None:
+    # Pre-assertion setup
+    self.td.conformed_pipe.execute()
+
     # Retrieve dfs as a dependent
     dfs: dict[str, DataFrame] = self.td.exporter.get_dfs()
 
@@ -27,6 +36,9 @@ class TestExporter(TestCase):
 
     # Assert output is as expected
     assert isinstance(df, DataFrame)
+
+    # Post-assertion cleanup
+    self.td.conformed_pipe.table.truncate()
   
   def test_export(self) -> None:
     # Export and retrieve the resulting file name
