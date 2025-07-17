@@ -1,7 +1,7 @@
 import polars as pl
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from deltalake import DeltaTable, Schema, TableFeatures
 from os import makedirs, path
 from pathlib import Path
@@ -130,7 +130,7 @@ class Table:
     dt.alter.add_feature(
       feature=TableFeatures.TimestampWithoutTimezone,
       allow_protocol_versions_increase=True
-    )   
+    )
 
   @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:
@@ -391,7 +391,7 @@ class Table:
       last_modified_datetime (datetime): the last modified datetime of the table
     """
     modified_time: float = path.getmtime(self.state_file_path)
-    return datetime.fromtimestamp(modified_time)
+    return datetime.fromtimestamp(modified_time, tz=UTC)
 
   def get_last_modified_record(self) -> dict[str, any]:
     """Builds a dict record for last modified information

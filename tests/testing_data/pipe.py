@@ -3,7 +3,11 @@ from deltalake import Field, Schema
 from polars import DataFrame
 from typing import Any
 
-from polta.checks import *
+from polta.checks import (
+  check_not_null_or_empty,
+  check_positive_int,
+  check_value_in
+)
 from polta.test import Test
 from polta.enums import (
   CheckAction,
@@ -18,7 +22,9 @@ from polta.table import Table
 from polta.transformer import Transformer
 from sample.metastore import metastore
 
+
 class TestingData:
+  """Contains test data for the pipe"""
   table: Table = Table(
     domain='standard',
     quality=TableQuality.RAW,

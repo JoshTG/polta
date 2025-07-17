@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from polars import DataFrame
+from typing import Any
 
 from polta.check import Check
 from polta.enums import CheckAction
@@ -7,10 +8,21 @@ from polta.enums import CheckAction
 
 @dataclass
 class Test:
+  """Contains fields and actions for a Test
+  
+  Positional Args:
+    check (Check): the base Check for the Test
+    column (str): the column name to which the test applies
+    check_action (CheckAction): what to do if the check fails
+    kwargs (dict[str, Any]): any additional keyword arguments
+  
+  Initialized Fields:
+    result_column (str): the expected result column
+  """
   check: Check
   column: str
   check_action: CheckAction
-  kwargs: dict = field(default_factory=lambda: {})
+  kwargs: dict[str, Any] = field(default_factory=lambda: {})
 
   result_column: str = field(init=False)
 

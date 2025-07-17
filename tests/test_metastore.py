@@ -44,11 +44,6 @@ class TestMetastore(TestCase):
     self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', Schema([]), 2)
     self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', Schema([]), [2])
 
-    # Clear table if it exists
-    if path.exists(self.td.test_path):
-      rmtree(self.td.test_path)
-    assert not path.exists(self.td.test_path)
-
     # Create table and ensure it exists
     self.pm_init.create_table_if_not_exists(
       table_path=self.td.test_path,
@@ -65,8 +60,10 @@ class TestMetastore(TestCase):
     assert path.exists(self.td.test_path)
     assert DeltaTable.is_deltatable(self.td.test_path)
 
-    # Post-assertion cleanup
-    rmtree(self.td.test_path)
+    # Clear table if it exists
+    if path.exists(self.td.test_path):
+      rmtree(self.td.test_path)
+    assert not path.exists(self.td.test_path)
 
   def test_list_domains(self) -> None:
     # Assert metastore can return the list of domains

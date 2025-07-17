@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from deltalake import DeltaTable, Schema
 from os import path, remove
 from polars import DataFrame, read_delta
@@ -25,18 +25,15 @@ class TestTable(TestCase):
     self.assertRaises(TypeError, Table.create_if_not_exists, 2, Schema([]))
     self.assertRaises(TypeError, Table.create_if_not_exists, 'path', 2)
 
-    # Clear table if it exists
-    if path.exists(self.td.test_path):
-      rmtree(self.td.test_path)
-    assert not path.exists(self.td.test_path)
-
     # Create table and ensure it exists
     Table.create_if_not_exists(self.td.test_path, self.td.table.schema.deltalake)
     assert path.exists(self.td.test_path)
     assert DeltaTable.is_deltatable(self.td.test_path)
 
-    # Post-assertion cleanup
-    rmtree(self.td.test_path)
+    # Clear table if it exists
+    if path.exists(self.td.test_path):
+      rmtree(self.td.test_path)
+    assert not path.exists(self.td.test_path)
 
   def test_build_merge_predicate(self) -> None:
     # Assert table initialization created the merge predicate as expected
@@ -175,7 +172,7 @@ class TestTable(TestCase):
     # This should only fail if executed exactly before midnight on the first of a new month
     self.td.table.touch_state_file()
     last_modified_datetime: datetime = self.td.table.get_last_modified_datetime()
-    now: datetime = datetime.now()
+    now: datetime = datetime.now(UTC)
     assert last_modified_datetime.year == now.year
     assert last_modified_datetime.month == now.month
     assert last_modified_datetime.day in [now.day, (now - timedelta(days=1)).day]
@@ -185,7 +182,7 @@ class TestTable(TestCase):
     # This should only fail if executed exactly before midnight on the first of a new month
     self.td.table.touch_state_file()
     last_modified_record: dict[str, Any] = self.td.table.get_last_modified_record()
-    now: datetime = datetime.now()
+    now: datetime = datetime.now(UTC)
     assert isinstance(last_modified_record, dict)
     assert last_modified_record['domain'] == self.td.table.domain
     assert last_modified_record['quality'] == self.td.table.quality.value
@@ -285,7 +282,6 @@ class TestTable(TestCase):
 
     # Assert drop worked
     self.td.table.drop()
-    #assert not path.exists(self.td.table.table_path)
 
   def test_clear_quarantine(self) -> None:
     # Pre-assertion setup

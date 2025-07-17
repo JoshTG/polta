@@ -11,6 +11,7 @@ from sample.standard.raw.activity import \
 
 
 class TestingData:
+  """Contains test data for the ingester"""
   expected_row_count: int = 2
   expected_columns: list[str] = [
     '_raw_id',

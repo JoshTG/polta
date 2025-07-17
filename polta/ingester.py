@@ -2,7 +2,7 @@ import polars as pl
 
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
-from deltalake import Field, Schema
+from deltalake import Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
@@ -183,7 +183,7 @@ class Ingester:
 
     return RawMetadata(
       _raw_id=str(uuid4()),
-      _ingested_ts=datetime.now(),
+      _ingested_ts=datetime.now(UTC),
       _file_path=file_path,
       _file_name=path.basename(file_path),
       _file_mod_ts=datetime.fromtimestamp(path.getmtime(file_path), tz=UTC)

@@ -13,6 +13,9 @@ sample/test_metastore/volumes/quarantine/
 sample/test_metastore/volumes/system/
 sample/test_metastore_init/
 
+# Lint files
+.ruff_cache
+
 # Generated test/cache files
 .pytest_cache
 __pycache__

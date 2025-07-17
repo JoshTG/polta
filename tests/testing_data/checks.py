@@ -1,11 +1,16 @@
 from polars import DataFrame
 
-from polta.checks import *
+from polta.checks import (
+  check_not_null_or_empty,
+  check_positive_int,
+  check_value_in
+)
 from polta.test import Test
 from polta.enums import CheckAction
 
 
 class TestingData:
+  """Contains test data for checks"""
   input_df: DataFrame = DataFrame([
     {'id': 1, 'name': 'Spongebob', 'category': 'FT', 'salary': 55_000},
     {'id': 2, 'name': 'Gary', 'category': '', 'salary': 44_345},
