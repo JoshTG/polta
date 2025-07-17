@@ -3,15 +3,19 @@ from deltalake import Field, Schema
 from os import getcwd, path
 from typing import Any
 
-from polta.checks import *
+from polta.checks import (
+  check_not_null_or_empty,
+  check_positive_int,
+  check_value_in
+)
 from polta.test import Test
 from polta.enums import CheckAction, TableQuality
 from polta.table import Table
-from polta.table_schema import TableSchema
 from sample.metastore import metastore
 
 
 class TestingData:
+  """Contains test data for the table"""
   raw_table: Table = Table(
     domain='standard',
     quality=TableQuality.RAW,

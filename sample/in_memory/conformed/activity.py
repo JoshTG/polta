@@ -1,13 +1,10 @@
 from deltalake import Field, Schema
-from polars import col, DataFrame
-from polars.datatypes import DataType, List, Struct
+from polars import DataFrame
 
-from polta.enums import TableQuality, WriteLogic
-from polta.maps import Maps
+from polta.enums import TableQuality
 from polta.pipe import Pipe
 from polta.table import Table
 from polta.transformer import Transformer
-from polta.udfs import string_to_struct
 from sample.in_memory.raw.activity import \
   table as tab_raw_activity
 from sample.metastore import metastore
