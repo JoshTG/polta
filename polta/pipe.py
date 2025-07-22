@@ -72,15 +72,15 @@ class Pipe:
       df: DataFrame = dfs[self.table.id]
     else:
       df: DataFrame = self.logic.transform(dfs)
-      df: DataFrame = self.add_metadata_columns(df)
-      df: DataFrame = self.conform_schema(df)
+      df: DataFrame = self.table.add_metadata_columns(df)
+      df: DataFrame = self.table.conform_schema(df)
 
     # Run any tests and return the three data results
     passed, failed, quarantined = self.table.apply_tests(df)
 
     # Handle any quarantined records
     if not quarantined.is_empty():
-      self.quarantine(quarantined)
+      self.table.quarantine(quarantined)
 
     # If strict mode is enabled and dataset is empty, raise EmptyPipe
     succeeded: bool = (not strict) or (not passed.is_empty())
@@ -116,53 +116,6 @@ class Pipe:
     # Otherwise, return remaining passed records
     return passed, failed, quarantined
   
-  def add_metadata_columns(self, df: DataFrame) -> DataFrame:
-    """Adds relevant metadata columns to the DataFrame before loading
-
-    This method presumes the DataFrame carries its original metadata
-    
-    Args:
-      df (DataFrame): the DataFrame before metadata columns
-    
-    Returns:
-      df (DataFrame): the resulting DataFrame
-    """
-    id: str = str(uuid4())
-    now: datetime = datetime.now(UTC)
-    
-    if self.table.quality.value == TableQuality.RAW.value:
-      df: DataFrame = df.with_columns([
-        pl.lit(id).alias('_raw_id'),
-        pl.lit(now).alias('_ingested_ts')
-      ])
-    elif self.table.quality.value == TableQuality.CONFORMED.value:
-      df: DataFrame = df.with_columns([
-        pl.lit(id).alias('_conformed_id'),
-        pl.lit(now).alias('_conformed_ts')
-      ])
-    elif self.table.quality.value == TableQuality.CANONICAL.value:
-      df: DataFrame = df.with_columns([
-        pl.lit(id).alias('_canonicalized_id'),
-        pl.lit(now).alias('_created_ts'),
-        pl.lit(now).alias('_modified_ts')
-      ])
-    else:
-      raise TableQualityNotRecognized(self.table.quality.value)
-
-    return df
-  
-  def conform_schema(self, df: DataFrame) -> DataFrame:
-    """Conforms the DataFrame to the expected schema
-    
-    Args:
-      df (DataFrame): the transformed, pre-conformed DataFrame
-    
-    Returns:
-      df (DataFrame): the conformed DataFrame
-    """
-    df: DataFrame = self.add_metadata_columns(df)
-    return df.select(*self.table.schema.polars.keys())
-
   def save(self, df: DataFrame) -> None:
     """Saves a DataFrame into the target Delta Table
     
@@ -183,32 +136,3 @@ class Pipe:
       self.table.upsert(df)
     else:
       raise WriteLogicNotRecognized(self.write_logic)
-
-  def quarantine(self, df: DataFrame) -> None:
-    """Handles quarantined records from a save attempt
-
-    The records get upserted into the corresponding quarantine table
-    
-    Args:
-      df (DataFrame): the DataFrame of quarantined records
-    """
-    print(f'  - {df.shape[0]} record(s) got quarantined: {self.table.quarantine_path}')
-    # Merge if the quarantine table exists
-    # Otherwise, just append this time
-    if DeltaTable.is_deltatable(self.table.quarantine_path):
-      (df
-        .write_delta(
-          target=self.table.quarantine_path,
-          mode='merge',
-          delta_merge_options={
-            'predicate': f's.{self.table.schema.failure_column} = t.{self.table.schema.failure_column}',
-            'source_alias': 's',
-            'target_alias': 't'
-          }
-        )
-        .when_matched_update_all()
-        .when_not_matched_insert_all()
-        .execute()
-      )
-    else:
-      df.write_delta(self.table.quarantine_path, mode='append')

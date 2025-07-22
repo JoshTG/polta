@@ -31,7 +31,8 @@ class TestingData:
       Field('active_ind', 'boolean')
     ]),
     primary_keys=['id', 'name'],
-    metastore=metastore
+    metastore=metastore,
+    partition_keys=['active_ind']
   )
 
   test_path: str = path.join(getcwd(), 'sample', 'test_metastore', 'volumes', 'test_zone', 'table')

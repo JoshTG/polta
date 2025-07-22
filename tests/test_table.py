@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from deltalake import DeltaTable, Schema
+from deltalake import DeltaTable, Field, Schema
 from os import path, remove
 from polars import DataFrame, read_delta
 from shutil import rmtree
@@ -24,6 +24,9 @@ class TestTable(TestCase):
     # Assert method validates input types correctly
     self.assertRaises(TypeError, Table.create_if_not_exists, 2, Schema([]))
     self.assertRaises(TypeError, Table.create_if_not_exists, 'path', 2)
+    self.assertRaises(TypeError, Table.create_if_not_exists, 'path', Schema([]), 2)
+    self.assertRaises(TypeError, Table.create_if_not_exists, 'path', Schema([]), [2])
+    self.assertRaises(ValueError, Table.create_if_not_exists, 'path', Schema([Field('id', 'string')]), ['name'])
 
     # Clear table if it exists
     if path.exists(self.td.test_path):
@@ -31,9 +34,14 @@ class TestTable(TestCase):
     assert not path.exists(self.td.test_path)
 
     # Create table and ensure it exists
-    Table.create_if_not_exists(self.td.test_path, self.td.table.schema.deltalake)
+    Table.create_if_not_exists(
+      table_path=self.td.test_path,
+      schema=self.td.table.schema.deltalake,
+      partition_keys=self.td.table.partition_keys
+    )
     assert path.exists(self.td.test_path)
     assert DeltaTable.is_deltatable(self.td.test_path)
+    assert DeltaTable(self.td.test_path).metadata().partition_columns == ['active_ind']
 
     # Post-assertion cleanup
     rmtree(self.td.test_path)
