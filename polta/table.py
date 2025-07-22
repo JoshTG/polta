@@ -4,18 +4,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, UTC
 from deltalake import DeltaTable, Schema, TableFeatures
 from os import makedirs, path
-from pathlib import Path
 from polars import DataFrame
 from shutil import rmtree
 from typing import Optional
 from uuid import uuid4
 
 from polta.test import Test
-from polta.enums import CheckAction, TableQuality, WriteLogic
+from polta.enums import CheckAction, TableQuality
 from polta.exceptions import (
   PoltaDataFormatNotRecognized,
-  TableQualityNotRecognized,
-  WriteLogicNotRecognized
+  TableQualityNotRecognized
 )
 from polta.metastore import Metastore
 from polta.table_schema import TableSchema
@@ -231,6 +229,7 @@ class Table:
     Returns:
       delta_table (DeltaTable): the resulting Delta Table
     """
+    self.create_if_not_exists(self.table_path, self.schema.deltalake, self.partition_keys)
     return DeltaTable(self.table_path)
 
   def get(self, filter_conditions: dict = {}, partition_by: list[str] = [], order_by: list[str] = [],
@@ -275,6 +274,8 @@ class Table:
       raise TypeError('Error: all values in select must be of type <str>')
     if not all(isinstance(c, str) for c in sort_by):
       raise TypeError('Error: all values in sort_by must be of type <str>')
+    
+    self.create_if_not_exists(self.table_path, self.schema.deltalake, self.partition_keys)
 
     # Retrieve Delta Table as a Polars DataFrame
     df: DataFrame = pl.read_delta(self.table_path)
@@ -402,15 +403,6 @@ class Table:
       mode='append'
     )
 
-  def get_last_modified_datetime(self) -> datetime:
-    """Retrieves the last modified datetime of the table
-    
-    Returns:
-      last_modified_datetime (datetime): the last modified datetime of the table
-    """
-    modified_time: float = float(self.get_as_delta_table().history(1)[0]['timestamp'])
-    return datetime.fromtimestamp(modified_time, UTC)
-
   def conform_schema(self, df: DataFrame) -> DataFrame:
     """Conforms the DataFrame to the expected schema
     
@@ -469,15 +461,5 @@ class Table:
     """
     # Ensure DataFrame type
     df: DataFrame = self.enforce_dataframe(data)
-
-    # Add metadata columns if missing
-    if df.schema == self.schema.raw_polars:
-      df: DataFrame = self.add_metadata_columns(df)
-
     df: DataFrame = self.conform_schema(df)
-
-    # Fail is DataFrame is not in the expected format
-    if df.schema != self.schema.polars:
-      raise RuntimeError(f'Schema mismatch:\nRoot:\n{df.schema}\nTarget:\n{self.schema.polars}')
-
     return df

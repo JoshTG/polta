@@ -3,11 +3,14 @@ from deltalake import Field, Schema
 from os import getcwd, path
 from typing import Any
 
-from polta.checks import *
+from polta.checks import (
+  check_not_null_or_empty,
+  check_positive_int,
+  check_value_in
+)
 from polta.test import Test
 from polta.enums import CheckAction, TableQuality
 from polta.table import Table
-from polta.table_schema import TableSchema
 from sample.metastore import metastore
 
 
@@ -25,6 +28,19 @@ class TestingData:
     domain='standard',
     quality=TableQuality.CANONICAL,
     name='test_table',
+    raw_schema=Schema([
+      Field('id', 'integer'),
+      Field('name', 'string'),
+      Field('active_ind', 'boolean')
+    ]),
+    primary_keys=['id', 'name'],
+    metastore=metastore,
+    partition_keys=['active_ind']
+  )
+  standard_table: Table = Table(
+    domain='standard',
+    quality=TableQuality.STANDARD,
+    name='standard',
     raw_schema=Schema([
       Field('id', 'integer'),
       Field('name', 'string'),

@@ -44,11 +44,6 @@ class TestMetastore(TestCase):
     self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', Schema([]), 2)
     self.assertRaises(TypeError, self.pm_init.create_table_if_not_exists, 'path', Schema([]), [2])
 
-    # Clear table if it exists
-    if path.exists(self.td.test_path):
-      rmtree(self.td.test_path)
-    assert not path.exists(self.td.test_path)
-
     # Create table and ensure it exists
     self.pm_init.create_table_if_not_exists(
       table_path=self.td.test_path,
