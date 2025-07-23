@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
-from deltalake import DeltaTable, Schema
-from os import path, remove
+from deltalake import DeltaTable, Field, Schema
+from os import path
 from polars import DataFrame, read_delta
 from shutil import rmtree
 from typing import Any
@@ -24,16 +23,19 @@ class TestTable(TestCase):
     # Assert method validates input types correctly
     self.assertRaises(TypeError, Table.create_if_not_exists, 2, Schema([]))
     self.assertRaises(TypeError, Table.create_if_not_exists, 'path', 2)
-
-    # Clear table if it exists
-    if path.exists(self.td.test_path):
-      rmtree(self.td.test_path)
-    assert not path.exists(self.td.test_path)
+    self.assertRaises(TypeError, Table.create_if_not_exists, 'path', Schema([]), 2)
+    self.assertRaises(TypeError, Table.create_if_not_exists, 'path', Schema([]), [2])
+    self.assertRaises(ValueError, Table.create_if_not_exists, 'path', Schema([Field('id', 'string')]), ['name'])
 
     # Create table and ensure it exists
-    Table.create_if_not_exists(self.td.test_path, self.td.table.schema.deltalake)
+    Table.create_if_not_exists(
+      table_path=self.td.test_path,
+      schema=self.td.table.schema.deltalake,
+      partition_keys=self.td.table.partition_keys
+    )
     assert path.exists(self.td.test_path)
     assert DeltaTable.is_deltatable(self.td.test_path)
+    assert DeltaTable(self.td.test_path).metadata().partition_columns == ['active_ind']
 
     # Post-assertion cleanup
     rmtree(self.td.test_path)
@@ -148,20 +150,6 @@ class TestTable(TestCase):
     assert isinstance(df, DataFrame)
     assert df.is_empty()
 
-  def test_touch_state_file(self) -> None:
-    # Remove state file first
-    if path.exists(self.td.table.state_file_path):
-      remove(self.td.table.state_file_path)
-
-    # Assert touch state file creates a state file
-    self.td.table.touch_state_file()
-    assert path.exists(self.td.table.state_file_path)
-
-    # Assert it works even if directory does not exist
-    rmtree(self.td.table.state_file_directory)
-    self.td.table.touch_state_file()
-    assert path.exists(self.td.table.state_file_path)
-
   def test_ingestion_zone_directory(self) -> None:
     # Remove ingestion zone path first
     rmtree(self.td.raw_table.ingestion_zone_path)
@@ -169,33 +157,6 @@ class TestTable(TestCase):
     # Assert a raw table enforces ingestion volume creation
     self.td.raw_table._build_ingestion_zone_if_not_exists()
     assert path.exists(self.td.raw_table.ingestion_zone_path)
-
-  def test_get_last_modified_datetime(self) -> None:
-    # Touch state file and assert it is on the same date as today or yesterday
-    # This should only fail if executed exactly before midnight on the first of a new month
-    self.td.table.touch_state_file()
-    last_modified_datetime: datetime = self.td.table.get_last_modified_datetime()
-    now: datetime = datetime.now()
-    assert last_modified_datetime.year == now.year
-    assert last_modified_datetime.month == now.month
-    assert last_modified_datetime.day in [now.day, (now - timedelta(days=1)).day]
-
-  def test_get_last_modified_record(self) -> None:
-    # Touch state file and assert if is on the same date as today or yesterday
-    # This should only fail if executed exactly before midnight on the first of a new month
-    self.td.table.touch_state_file()
-    last_modified_record: dict[str, Any] = self.td.table.get_last_modified_record()
-    now: datetime = datetime.now()
-    assert isinstance(last_modified_record, dict)
-    assert last_modified_record['domain'] == self.td.table.domain
-    assert last_modified_record['quality'] == self.td.table.quality.value
-    assert last_modified_record['table'] == self.td.table.name
-    assert last_modified_record['path'] == self.td.table.table_path
-    assert 'last_modified_datetime' in last_modified_record
-    last_modified_datetime: datetime = last_modified_record['last_modified_datetime']
-    assert last_modified_datetime.year == now.year
-    assert last_modified_datetime.month == now.month
-    assert last_modified_datetime.day in [now.day, (now - timedelta(days=1)).day]
 
   def test_apply_tests(self) -> None:
     # Apply tests against an input dataset
@@ -219,7 +180,8 @@ class TestTable(TestCase):
 
     # Test rowcount and ID field
     assert df.shape[0] == self.td.output_dataset_1_len
-    assert df.select('id').to_dicts() == self.td.output_dataset_1_ids
+    assert df.select('id').sort('id').to_dicts() \
+      == self.td.output_dataset_1_ids
 
     # Clear table after testing
     self.td.table.truncate()
@@ -229,13 +191,15 @@ class TestTable(TestCase):
     self.td.table.overwrite(self.df_1)
     out_1: DataFrame = self.td.table.get()
     assert out_1.shape[0] == self.td.output_dataset_1_len
-    assert out_1.select('id').to_dicts() == self.td.output_dataset_1_ids
+    assert out_1.select('id').sort('id').to_dicts() \
+      == self.td.output_dataset_1_ids
 
     # Test overwrite with dataset 2
     self.td.table.overwrite(self.df_2)
     out_2: DataFrame = self.td.table.get()
     assert out_2.shape[0] == self.td.output_dataset_2_len
-    assert out_2.select('id').to_dicts() == self.td.output_dataset_2_ids
+    assert out_2.select('id').sort('id').to_dicts() \
+      == self.td.output_dataset_2_ids
 
   def test_merge(self) -> None:
     # Truncate table before testing
@@ -245,7 +209,8 @@ class TestTable(TestCase):
     self.td.table.upsert(self.df_1)
     out_1: DataFrame = self.td.table.get()
     assert out_1.shape[0] == self.td.output_dataset_1_len
-    assert out_1.select('id').sort('id').to_dicts() == self.td.output_dataset_1_ids
+    assert out_1.select('id').sort('id').to_dicts() \
+      == self.td.output_dataset_1_ids
 
     # Test active_ind state after upsert #1
     active_ind_df_1: DataFrame = self.td.table.get(
@@ -260,7 +225,8 @@ class TestTable(TestCase):
     self.td.table.upsert(self.df_2)
     out_2: DataFrame = self.td.table.get()
     assert out_2.shape[0] == self.td.upsert_len
-    assert out_2.select('id').sort('id').to_dicts() == self.td.upsert_ids
+    assert out_2.select('id').sort('id').to_dicts() \
+      == self.td.upsert_ids
 
     # Test active_ind state after upsert #2
     active_ind_df_2: list[dict[str, Any]] = self.td.table.get(
@@ -292,7 +258,10 @@ class TestTable(TestCase):
     self.td.table.clear_quarantine()
 
     # Add one record to the quarantine and ensure it loaded
-    self.quarantine_df.write_delta(self.td.table.quarantine_path, mode='append')
+    self.quarantine_df.write_delta(
+      target=self.td.table.quarantine_path,
+      mode='append'
+    )
     df: DataFrame = read_delta(self.td.table.quarantine_path)
     assert isinstance(df, DataFrame)
     assert df.shape[0] == 1
@@ -307,3 +276,14 @@ class TestTable(TestCase):
     # Run ingestion zone method
     self.td.table._build_ingestion_zone_if_not_exists()
     assert path.exists(self.td.table.ingestion_zone_path)
+
+  def test_standard_table(self) -> None:
+    # Retrieve the standard table as a DataFrame
+    df: DataFrame = self.td.standard_table.get()
+    df: DataFrame = df.drop('_id')
+    df: DataFrame = self.td.standard_table._preprocess(df)
+
+    # Ensure it matches the expected type and columns
+    assert isinstance(df, DataFrame)
+    assert list(df.schema.keys()) \
+      == self.td.standard_table.schema.columns

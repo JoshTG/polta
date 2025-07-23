@@ -33,6 +33,7 @@ class TableQuality(Enum):
   RAW = 'raw'
   CONFORMED = 'conformed'
   CANONICAL = 'canonical'
+  STANDARD = 'standard'
 
 class WriteLogic(Enum):
   """The method of saving data to a Delta Table"""

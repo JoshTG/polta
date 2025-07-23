@@ -78,7 +78,7 @@ class TestIngester(TestCase):
         ]
       )
     )
-    self.pip.quarantine(quarantine_df)
+    self.pip.table.quarantine(quarantine_df)
     res_2: DataFrame = self.ing._filter_by_history(metadata)
     assert res_2.shape[0] == 2
 

@@ -20,7 +20,8 @@ from polta.exceptions import DataTypeNotRecognized
 from polta.schemas.table import (
   raw_metadata,
   conformed_metadata,
-  canonical_metadata
+  canonical_metadata,
+  standard_metadata
 )
 
 
@@ -49,12 +50,14 @@ class Maps:
   QUALITY_TO_METADATA_COLUMNS: dict[str, list[Field]] = {
     TableQuality.RAW.value: raw_metadata.fields,
     TableQuality.CONFORMED.value: conformed_metadata.fields,
-    TableQuality.CANONICAL.value: canonical_metadata.fields
+    TableQuality.CANONICAL.value: canonical_metadata.fields,
+    TableQuality.STANDARD.value: standard_metadata.fields
   }
   QUALITY_TO_FAILURE_COLUMN: dict[str, str] = {
     TableQuality.RAW.value: '_raw_id',
     TableQuality.CONFORMED.value: '_conformed_id',
-    TableQuality.CANONICAL.value: '_canonicalized_id'
+    TableQuality.CANONICAL.value: '_canonicalized_id',
+    TableQuality.STANDARD.value: '_id'
   }
 
   @staticmethod

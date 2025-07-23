@@ -1,17 +1,20 @@
 import polars as pl
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from deltalake import DeltaTable, Schema, TableFeatures
 from os import makedirs, path
-from pathlib import Path
 from polars import DataFrame
 from shutil import rmtree
 from typing import Optional
+from uuid import uuid4
 
 from polta.test import Test
 from polta.enums import CheckAction, TableQuality
-from polta.exceptions import PoltaDataFormatNotRecognized
+from polta.exceptions import (
+  PoltaDataFormatNotRecognized,
+  TableQualityNotRecognized
+)
 from polta.metastore import Metastore
 from polta.table_schema import TableSchema
 from polta.types import RawPoltaData
@@ -23,13 +26,14 @@ class Table:
   
   Positional Args:
     domain (str): the kind of data this table contains
-    quality (TableQuality): the quality of the data
     name (str): the name of the table
     
   Optional Args:
+    quality (TableQuality): the quality of the data (default STANDARD)
     raw_schema (Optional[Schema]): the raw table schema (default None)
     metastore (Metastore): The metastore (default Metastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
+    partition_keys (list[str]): the keys by which to partition the table (default [])
     tests (list[Test]): test checks before loading any data
   
   Initialized fields:
@@ -37,8 +41,6 @@ class Table:
     schema (TableSchema): the table schema object
     table_path (str): the absolute path to the Table in the metastore
     ingestion_zone_path (str): the path to the ingestion zone
-    state_file_directory (str): the absolute path to the state files directory
-    state_file_path (str): the absolute path to the Table state file
     schema.polars (dict[str, DataType]): the table schema as a Polars object
     schema.deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
@@ -48,19 +50,18 @@ class Table:
     failure_column (str): the column name for identifying failure records
   """
   domain: str
-  quality: TableQuality
   name: str
+  quality: TableQuality = field(default_factory=lambda: TableQuality.STANDARD)
   raw_schema: Optional[Schema] = field(default_factory=lambda: None)
   metastore: Metastore = field(default_factory=lambda: Metastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
+  partition_keys: list[str] = field(default_factory=lambda: [])
   tests: list[Test] = field(default_factory=lambda: [])
 
   id: str = field(init=False)
   schema: TableSchema = field(init=False)
   table_path: str = field(init=False)
   ingestion_zone_path: str = field(init=False)
-  state_file_directory: str = field(init=False)
-  state_file_path: str = field(init=False)
   quarantine_path: str = field(init=False)
   merge_predicate: Optional[str] = field(init=False)
 
@@ -83,17 +84,6 @@ class Table:
       self.domain,
       self.name
     )
-    self.state_file_directory: str = path.join(
-      self.metastore.volumes_directory,
-      'state',
-      self.domain,
-      self.quality.value,
-      self.name            
-    )
-    self.state_file_path: str = path.join(
-      self.state_file_directory,
-      '.STATE'
-    )
     self.quarantine_path: str = path.join(
       self.metastore.volumes_directory,
       'quarantine',
@@ -108,29 +98,43 @@ class Table:
       self.merge_predicate: Optional[str] = None
     if self.quality.value == TableQuality.RAW.value:
       self._build_ingestion_zone_if_not_exists()
+    self.create_if_not_exists(self.table_path, self.schema.deltalake, self.partition_keys)
 
   @staticmethod
-  def create_if_not_exists(table_path: str, schema: Schema) -> None:
+  def create_if_not_exists(table_path: str, schema: Schema,
+                           partition_keys: list[str] = []) -> None:
     """Creates a Delta Table if it does not exist
 
     Args:
         table_path (str): the path of the Delta Table
         schema (Schema): the table schema, in case the Delta Table needs to be created
+        partition_keys (list[str]): any partition keys
     """
     if not isinstance(table_path, str):
       raise TypeError('Error: table_path must be of type <str>')
     if not isinstance(schema, Schema):
       raise TypeError('Error: schema must be of type <Schema>')
+    if not isinstance(partition_keys, list):
+      raise TypeError('Error: partition_keys must be of type <list>')
+    if not all(isinstance(k, str) for k in partition_keys):
+      raise TypeError('Error: all values in partition_keys must be of type <str>')
+    if not all(k in [f.name for f in schema.fields] for k in partition_keys):
+      raise ValueError('Error: not all partition_keys exist as columns')
 
     # If it exists already, return
     if DeltaTable.is_deltatable(table_path):
       return
 
-    dt: DeltaTable = DeltaTable.create(table_path, schema, mode='ignore')
+    dt: DeltaTable = DeltaTable.create(
+      table_uri=table_path,
+      schema=schema,
+      mode='ignore',
+      partition_by=partition_keys or None
+    )
     dt.alter.add_feature(
       feature=TableFeatures.TimestampWithoutTimezone,
       allow_protocol_versions_increase=True
-    )   
+    )
 
   @staticmethod
   def build_merge_predicate(primary_keys: list[str]) -> str:
@@ -167,7 +171,7 @@ class Table:
     
     Args:
       df (DataFrame): the DataFrame to test
-        
+
     Returns:
       passed, failed, quarantined (DataFrame): the resulting DataFrames
     """
@@ -225,7 +229,7 @@ class Table:
     Returns:
       delta_table (DeltaTable): the resulting Delta Table
     """
-    self.create_if_not_exists(self.table_path, self.schema.deltalake)
+    self.create_if_not_exists(self.table_path, self.schema.deltalake, self.partition_keys)
     return DeltaTable(self.table_path)
 
   def get(self, filter_conditions: dict = {}, partition_by: list[str] = [], order_by: list[str] = [],
@@ -270,9 +274,8 @@ class Table:
       raise TypeError('Error: all values in select must be of type <str>')
     if not all(isinstance(c, str) for c in sort_by):
       raise TypeError('Error: all values in sort_by must be of type <str>')
-
-    # Create the Delta Table if it does not exist
-    self.create_if_not_exists(self.table_path, self.schema.deltalake)
+    
+    self.create_if_not_exists(self.table_path, self.schema.deltalake, self.partition_keys)
 
     # Retrieve Delta Table as a Polars DataFrame
     df: DataFrame = pl.read_delta(self.table_path)
@@ -304,7 +307,48 @@ class Table:
       df: DataFrame = df.sort(sort_by)
 
     return df
-  
+
+  def add_metadata_columns(self, df: DataFrame) -> DataFrame:
+    """Adds relevant metadata columns to the DataFrame before loading
+
+    This method presumes the DataFrame carries its original metadata
+    
+    Args:
+      df (DataFrame): the DataFrame before metadata columns
+    
+    Returns:
+      df (DataFrame): the resulting DataFrame
+    """
+    id: str = str(uuid4())
+    now: datetime = datetime.now(UTC)
+    
+    if self.quality.value == TableQuality.RAW.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_raw_id'),
+        pl.lit(now).alias('_ingested_ts')
+      ])
+    elif self.quality.value == TableQuality.CONFORMED.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_conformed_id'),
+        pl.lit(now).alias('_conformed_ts')
+      ])
+    elif self.quality.value == TableQuality.CANONICAL.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_canonicalized_id'),
+        pl.lit(now).alias('_created_ts'),
+        pl.lit(now).alias('_modified_ts')
+      ])
+    elif self.quality.value == TableQuality.STANDARD.value:
+      df: DataFrame = df.with_columns([
+        pl.lit(id).alias('_id'),
+        pl.lit(now).alias('_created_ts'),
+        pl.lit(now).alias('_modified_ts')
+      ])
+    else:
+      raise TableQualityNotRecognized(self.quality.value)
+
+    return df
+
   def upsert(self, data: RawPoltaData) -> None:
     """Upserts a DataFrame into the Delta Table
 
@@ -316,11 +360,7 @@ class Table:
     if not self.primary_keys:
       raise ValueError('Error: Delta Table does not have primary keys')
 
-    # Ensure table exists first
-    self.create_if_not_exists(self.table_path, self.schema.deltalake)
-
-    # Ensure DataFrame type
-    df: DataFrame = self.enforce_dataframe(data)
+    df: DataFrame = self._preprocess(data)
 
     # Merge the DataFrame into its respective Delta Table
     # This merge logic is a simple upsert based on the table's primary keys
@@ -338,7 +378,6 @@ class Table:
       .when_not_matched_insert_all()
       .execute()
     )
-    self.touch_state_file()
 
   def overwrite(self, data: RawPoltaData) -> None:
     """Overwrites the Delta Table with the inputted DataFrame
@@ -346,17 +385,11 @@ class Table:
     Args:
       data (RawPoltaData): the data with which to overwrite
     """
-    # Ensure table exists first
-    self.create_if_not_exists(self.table_path, self.schema.deltalake)
-
-    # Ensure DataFrame type
-    df: DataFrame = self.enforce_dataframe(data)
-
+    df: DataFrame = self._preprocess(data)
     df.write_delta(
       target=self.table_path,
       mode='overwrite'
     )
-    self.touch_state_file()
 
   def append(self, data: RawPoltaData) -> None:
     """Appends a DataFrame to the Delta Table
@@ -364,51 +397,69 @@ class Table:
     Args:
       data (RawPoltaData): the data with which to append
     """
-    # Ensure table exists first
-    self.create_if_not_exists(self.table_path, self.schema.deltalake)
-
-    # Ensure DataFrame type
-    df: DataFrame = self.enforce_dataframe(data)
-
+    df: DataFrame = self._preprocess(data)
     df.write_delta(
       target=self.table_path,
       mode='append'
     )
-    self.touch_state_file()
 
-  def touch_state_file(self) -> None:
-    """Touches the state file to update the last modified datetime"""
-    try:
-      Path(self.state_file_path).touch()
-    except FileNotFoundError:
-      makedirs(self.state_file_directory, exist_ok=True)        
-      Path(self.state_file_path).touch()
-
-  def get_last_modified_datetime(self) -> datetime:
-    """Retrieves the last modified datetime of the table
+  def conform_schema(self, df: DataFrame) -> DataFrame:
+    """Conforms the DataFrame to the expected schema
+    
+    Args:
+      df (DataFrame): the transformed, pre-conformed DataFrame
     
     Returns:
-      last_modified_datetime (datetime): the last modified datetime of the table
+      df (DataFrame): the conformed DataFrame
     """
-    modified_time: float = path.getmtime(self.state_file_path)
-    return datetime.fromtimestamp(modified_time)
+    df: DataFrame = self.add_metadata_columns(df)
+    return df.select(*self.schema.polars.keys())
 
-  def get_last_modified_record(self) -> dict[str, any]:
-    """Builds a dict record for last modified information
+  def quarantine(self, df: DataFrame) -> None:
+    """Handles quarantined records from a save attempt
 
-    Returns:
-      last_modified_record (dict[str, any]): the metadata of the table's last modified timestamp
+    The records get upserted into the corresponding quarantine table
+    
+    Args:
+      df (DataFrame): the DataFrame of quarantined records
     """
-    return {
-      'domain': self.domain,
-      'quality': self.quality.value,
-      'table': self.name,
-      'path': self.table_path,
-      'last_modified_datetime': self.get_last_modified_datetime()
-    }
+    print(f'  - {df.shape[0]} record(s) got quarantined: {self.quarantine_path}')
+    # Merge if the quarantine table exists
+    # Otherwise, just append this time
+    if DeltaTable.is_deltatable(self.quarantine_path):
+      (df
+        .write_delta(
+          target=self.quarantine_path,
+          mode='merge',
+          delta_merge_options={
+            'predicate': f's.{self.schema.failure_column} = t.{self.schema.failure_column}',
+            'source_alias': 's',
+            'target_alias': 't'
+          }
+        )
+        .when_matched_update_all()
+        .when_not_matched_insert_all()
+        .execute()
+      )
+    else:
+      df.write_delta(self.quarantine_path, mode='append')
 
   def _build_ingestion_zone_if_not_exists(self) -> None:
     """Builds an empty directory for ingesting files"""
     if not path.exists(self.ingestion_zone_path):
       makedirs(self.ingestion_zone_path, exist_ok=True)
       print(f'Ingestion zone created: {self.ingestion_zone_path}')
+
+  def _preprocess(self, data: RawPoltaData) -> DataFrame:
+    """Preprocesses the data before writing to delta
+    
+    Args:
+      data (RawPoltaData): the data to preprocess
+    
+    Returns:
+      df (DataFrame): the preprocessed DataFrame
+    """
+    # Ensure DataFrame type
+    df: DataFrame = self.enforce_dataframe(data)
+    df: DataFrame = self.conform_schema(df)
+    return df
