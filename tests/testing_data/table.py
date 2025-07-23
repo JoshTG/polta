@@ -35,7 +35,21 @@ class TestingData:
       Field('active_ind', 'boolean')
     ]),
     primary_keys=['id', 'name'],
-    metastore=metastore
+    metastore=metastore,
+    partition_keys=['active_ind']
+  )
+  standard_table: Table = Table(
+    domain='standard',
+    quality=TableQuality.STANDARD,
+    name='standard',
+    raw_schema=Schema([
+      Field('id', 'integer'),
+      Field('name', 'string'),
+      Field('active_ind', 'boolean')
+    ]),
+    primary_keys=['id', 'name'],
+    metastore=metastore,
+    partition_keys=['active_ind']
   )
 
   test_path: str = path.join(getcwd(), 'sample', 'test_metastore', 'volumes', 'test_zone', 'table')

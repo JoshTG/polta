@@ -38,7 +38,7 @@ class TestPipe(TestCase):
 
     # Assert a malformed table fails to be conformed to a layer
     self.td.malformed_pipe.table.quality = RawFileType.JSON
-    self.assertRaises(TableQualityNotRecognized, self.td.malformed_pipe.add_metadata_columns, passed)
+    self.assertRaises(TableQualityNotRecognized, self.td.malformed_pipe.table.add_metadata_columns, passed)
     self.td.malformed_pipe.table.quality = TableQuality.RAW
 
   def test_transformer_pipe(self) -> None:

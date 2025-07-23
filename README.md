@@ -248,16 +248,6 @@ poetry run ruff check
 
 Below are sample code snippets to show basic usage. For full sample pipelines, consult the `sample` directory in the repository. These tables, pipes, and pipeline get used in the unit test which is located in the `tests/test_pipeline.py` pytest file.
 
-Below is a diagram of the basic pipeline architecture with these features:
-
-- The columns represent logical layers where data is stored.
-- The rows represent the two kinds of data within the metastore.
-- The pipes represent `Pipe` objects.
-- The rectangles represent `Table` objects.
-- The rectangles with wavy bottom sides represent directories in the metastore with various files.
-
-![polta-diagram](assets/png/polta-data-flow-diagram.png)
-
 ## Sample Metastore
 
 The creation of a new metastore is simple. Below is a sample metastore that can be passed into the initialization of any `Table` to ensure the table writes to the metastore.
@@ -447,6 +437,7 @@ Below are the top-level packages with their licenses.
 | [deltalake](https://github.com/delta-io/delta-rs) | >=0.25.5, <1.0.0 | Stores and reads data | Apache Software License (Apache-2.0) |
 | [ipykernel](https://github.com/ipython/ipykernel) | >=6.29.5, <6.30.0 | Creates Jupyter notebooks for ad hoc analytics | BSD-3-Clause License |
 | [openpyxl](https://foss.heptapod.net/openpyxl/openpyxl) | >=3.1.5, <3.2.0 | The underlying engine for pl.read_excel() | MIT License |
+| [pip](https://github.com/pypa/pip) | >=25.1.1, <25.2.0 | Installs Python packages for the virtual environment | MIT License |
 | [polars](https://github.com/pola-rs/polars) | >=1.30.0, <1.31.0 | Executes DataFrame transformation | MIT License |
 | [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit testing | MIT License |
 | [pytest-cov](https://github.com/pytest-dev/pytest-cov) | >=6.2.1, <6.3.0 | Applies test coverage to pytest runs | MIT License |

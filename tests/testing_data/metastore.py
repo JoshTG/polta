@@ -12,7 +12,8 @@ class TestingData:
   qualities: list[TableQuality] = [
     TableQuality.CANONICAL,
     TableQuality.CONFORMED,
-    TableQuality.RAW
+    TableQuality.RAW,
+    TableQuality.STANDARD
   ]
   domain_existence_checks: list[tuple[str, bool]] = [
     ('standard', True),
