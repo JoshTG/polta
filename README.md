@@ -442,7 +442,7 @@ Below are the top-level packages with their licenses.
 | [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit testing | MIT License |
 | [pytest-cov](https://github.com/pytest-dev/pytest-cov) | >=6.2.1, <6.3.0 | Applies test coverage to pytest runs | MIT License |
 | [ruff](https://github.com/astral-sh/ruff) | >=0.12.3, <0.13.0 | Executes linting checks in the repository | MIT License |
-| [ruff-action](https://github.com/astral-sh/ruff-action) | >=3.0.0, <4.0.0 | Executes a ruff check in the GitHub workflow | Apache Software License (Apache-2.0) |
+| [ruff-action](https://github.com/astral-sh/ruff-action) | latest | Executes a ruff check in the GitHub workflow | Apache Software License (Apache-2.0) |
 | [tzdata](https://github.com/python/tzdata) | >=2025.2, <2026.1 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
 
 # Contributing
