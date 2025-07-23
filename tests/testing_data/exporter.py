@@ -7,6 +7,7 @@ from sample.standard.export.profit import exporter
 
 
 class TestingData:
+  """Contains test data for the exporter"""
   exporter: Exporter = exporter
   conformed_pipe: Pipe = Pipe(ingester)
   export_pipe: Pipe = Pipe(exporter)

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from json import dumps
 from os import makedirs, path
 from polars import DataFrame
@@ -76,7 +76,7 @@ class Exporter:
     Returns:
       file_path (Optional[str]): if applicable, the resulting file_path
     """
-    ts: str = datetime.now().strftime('%Y%m%d%H%M%S')
+    ts: str = datetime.now(UTC).strftime('%Y%m%d%H%M%S')
     file_name: str = f'{self.table.name}.{ts}.{self.export_format.value}'
     file_path: str = path.join(self.export_directory, file_name)
     if self.export_format.value == ExportFormat.CSV.value:

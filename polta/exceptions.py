@@ -22,7 +22,7 @@ class DomainDoesNotExist(Exception):
 class EmptyPipe(Exception):
   """Raise when the pipe should load data but did not"""
   def __init__(self) -> None:
-    self.message: str = f'Pipe executed in strict mode but did not load data'
+    self.message: str = 'Pipe executed in strict mode but did not load data'
     super().__init__(self.message)
 
 class IncompatibleTransformLogic(Exception):

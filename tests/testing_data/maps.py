@@ -13,6 +13,7 @@ from polta.enums import TableQuality
 
 
 class TestingData:
+  """Contains test data for the maps"""
   expected_deltalake_schema: Schema = Schema([
     Field('id', 'integer'),
     Field('name', 'string'),

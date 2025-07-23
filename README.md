@@ -234,6 +234,16 @@ If you do not have 100% coverage, you can see which lines of code are not covere
 poetry run coverage report -m
 ```
 
+## Linting
+
+This repository uses `ruff` as its linter.
+
+To lint the code, run the following command in your terminal at the top-level directory:
+
+```sh
+poetry run ruff check
+```
+
 # Usage
 
 Below are sample code snippets to show basic usage. For full sample pipelines, consult the `sample` directory in the repository. These tables, pipes, and pipeline get used in the unit test which is located in the `tests/test_pipeline.py` pytest file.
@@ -431,22 +441,24 @@ Below are the top-level packages with their licenses.
 | [polars](https://github.com/pola-rs/polars) | >=1.30.0, <1.31.0 | Executes DataFrame transformation | MIT License |
 | [pytest](https://github.com/pytest-dev/pytest) | >=8.3.5, <8.4.0 | Runs test cases for unit testing | MIT License |
 | [pytest-cov](https://github.com/pytest-dev/pytest-cov) | >=6.2.1, <6.3.0 | Applies test coverage to pytest runs | MIT License |
+| [ruff](https://github.com/astral-sh/ruff) | >=0.12.3, <0.13.0 | Executes linting checks in the repository | MIT License |
+| [ruff-action](https://github.com/astral-sh/ruff-action) | latest | Executes a ruff check in the GitHub workflow | Apache Software License (Apache-2.0) |
 | [tzdata](https://github.com/python/tzdata) | >=2025.2, <2026.1 | Contains timezone information for Datetime objects | Apache Software License (Apache-2.0) |
 
 # Contributing
 
-Because this project is open-source, contributions are most welcome.
+Because this project is open-source, contributions are most welcome by following these steps:
 
-To contribute, follow these steps:
-
-1. Clone the repository into your local machine.
-2. Create a descriptive feature branch.
-3. Make the desired changes.
-4. Fully test the desired changes using `test` directory. Ensure you have 100% test coverage.
-5. Uptick the `poetry` project version appropriately using standard semantic versioning.
-6. Create a merge request into the `main` branch of the official `polta` project and assign it initially to @JoshTG.
-7. Once the merge request is approved and merged, an administrator will schedule a release cycle and deploy the changes using a new release tag.
+1. Submit the contribution request to the [issues page](https://github.com/JoshTG/polta/issues).
+2. Await signoff/feedback from a repository administrator.
+3. Clone the repository into your local machine.
+4. Create a descriptive feature branch.
+5. Make the desired changes.
+6. Fully test the desired changes using `test` directory. Ensure you have 100% `pytest` test coverage and the code passes a `ruff check`.
+7. Uptick the `poetry` project version appropriately using standard semantic versioning.
+8. Create a merge request into the `main` branch of the official `polta` project and assign it initially to @JoshTG.
+9. Once the merge request is approved and merged, an administrator will schedule a release cycle and deploy the changes using a new release tag.
 
 # Contact
 
-You may contact the main contributor, @JoshTG, by sending an email to this address: jgillilanddata@gmail.com
+You may contact the main contributor, [JoshTG](https://github.com/JoshTG), by sending an email to this address: jgillilanddata@gmail.com.

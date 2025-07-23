@@ -60,8 +60,9 @@ class TestIngester(TestCase):
   def test_filter_by_history(self) -> None:
     # Pre-assertion setup
     self.ing.table.truncate()
-    if path.exists(self.ing.table.quarantine_path):
-      rmtree(self.ing.table.quarantine_path)
+
+    # Ensure the quarantine_path is not present
+    rmtree(self.ing.table.quarantine_path, True)
     
     # Get source metadata and ensure neither record is filtered
     metadata: DataFrame = self.ing._get_metadata()
@@ -81,6 +82,11 @@ class TestIngester(TestCase):
     self.pip.table.quarantine(quarantine_df)
     res_2: DataFrame = self.ing._filter_by_history(metadata)
     assert res_2.shape[0] == 2
+
+    # Write again to ensure the merge occurs properly
+    self.pip.table.quarantine(quarantine_df)
+    res_3: DataFrame = self.ing._filter_by_history(metadata)
+    assert res_3.shape[0] == 2
 
     # Post-assertion cleanup
     self.ing.table.truncate()

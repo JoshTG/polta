@@ -3,6 +3,7 @@ from typing import Any
 
 
 class TestingData:
+  """Contains test data for the transformer"""
   dfs: dict[str, DataFrame] = {
     'activity': DataFrame([
       {'payload': '[\n  {\n    "id": 1,\n    "active_ind": true\n  },\n  {\n    "id": 2,\n    "active_ind": false\n  }\n]'},

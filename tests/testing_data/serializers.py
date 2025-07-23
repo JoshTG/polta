@@ -3,6 +3,7 @@ from typing import Any
 
 
 class TestingData:
+  """Contains test data for the serializers"""
   json_good_input: list[dict[str, Any]] = [
     {
       'id': 1,
@@ -18,4 +19,4 @@ class TestingData:
     }
   ]
   json_output: str = '[{"id": 1, "active_date": "2025-01-01", "created_ts": "2025-02-01T12:30:00+00:00"}]'
-  type_error_msg: str = f'Error: type <class \'typing._AnyMeta\'> is not serializable'
+  type_error_msg: str = 'Error: type <class \'typing._AnyMeta\'> is not serializable'

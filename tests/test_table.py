@@ -37,8 +37,10 @@ class TestTable(TestCase):
     assert DeltaTable.is_deltatable(self.td.test_path)
     assert DeltaTable(self.td.test_path).metadata().partition_columns == ['active_ind']
 
-    # Post-assertion cleanup
-    rmtree(self.td.test_path)
+    # Clear table if it exists
+    if path.exists(self.td.test_path):
+      rmtree(self.td.test_path)
+    assert not path.exists(self.td.test_path)
 
   def test_build_merge_predicate(self) -> None:
     # Assert table initialization created the merge predicate as expected
@@ -251,7 +253,6 @@ class TestTable(TestCase):
 
     # Assert drop worked
     self.td.table.drop()
-    #assert not path.exists(self.td.table.table_path)
 
   def test_clear_quarantine(self) -> None:
     # Pre-assertion setup

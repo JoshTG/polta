@@ -15,6 +15,7 @@ from sample.metastore import metastore
 
 
 class TestingData:
+  """Contains test data for the table"""
   raw_table: Table = Table(
     domain='standard',
     quality=TableQuality.RAW,
