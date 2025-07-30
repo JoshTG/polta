@@ -30,7 +30,7 @@ Throughout this README and in the repository's `sample` pipelines, various objec
 | `Exporter`    | exp_<quality-prefix\>_<table-name\> | exp_can_user       | 
 | `Ingester`    | ing_<quality-prefix\>_<table-name\> | ing_raw_activity   |
 | `Transformer` | tra_<quality-prefix\>_<table-name\> | tra_con_user       |
-| `Pipe`        | pip_<quality-prefix\>_<table-name\> | pip_con_activity   |
+| `Pipe`        | pip_<quality-prefix\>_<table-name\> | pip_std_category   |
 | `Pipeline`    | ppl_<domain\>_<table-name\>         | ppl_standard_user  |
 
 To illustrate, a `Table` is initially declared like this:
