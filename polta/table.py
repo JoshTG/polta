@@ -459,7 +459,7 @@ class Table:
     Returns:
       df (DataFrame): the preprocessed DataFrame
     """
-    # Ensure DataFrame type
+    # Ensure DataFrame type and structure
     df: DataFrame = self.enforce_dataframe(data)
     df: DataFrame = self.conform_schema(df)
     return df

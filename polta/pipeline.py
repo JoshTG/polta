@@ -11,17 +11,20 @@ class Pipeline:
   The pipe execution order:
     1. Raw
     2. Conformed
-    3. Canonical
-    4. Export
+    3. Standard
+    4. Canonical
+    5. Export
   
   Optional Args:
     raw_pipes (list[Pipe]): the raw pipes in the pipeline
     conformed_pipes (list[Pipe]): the conformed pipes in the pipeline
+    standard_pipes (list[Pipe]): the standard pipes in the pipeline
     canonical_pipes (list[Pipe]): the canonical pipes in the pipeline
     export_pipes (list[Pipe]): the export pipes in the pipeline
   """
   raw_pipes: list[Pipe] = field(default_factory=lambda: [])
   conformed_pipes: list[Pipe] = field(default_factory=lambda: [])
+  standard_pipes: list[Pipe] = field(default_factory=lambda: [])
   canonical_pipes: list[Pipe] = field(default_factory=lambda: [])
   export_pipes: list[Pipe] = field(default_factory=lambda: [])
 
@@ -47,6 +50,8 @@ class Pipeline:
       pipe.execute()
     for pipe in self.conformed_pipes:
       pipe.execute()
+    for pipe in self.standard_pipes:
+      pipe.execute()
     for pipe in self.canonical_pipes:
       pipe.execute()
     if not skip_exports:
@@ -67,6 +72,9 @@ class Pipeline:
     for pipe in self.conformed_pipes:
       passed, _, _ = pipe.execute(dfs, in_memory=True)
       dfs[pipe.table.id] = passed
+    for pipe in self.standard_pipes:
+      passed, _, _ = pipe.execute(dfs, in_memory=True)
+      dfs[pipe.table.id] = pipe
     for pipe in self.canonical_pipes:
       passed, _, _ = pipe.execute(dfs, in_memory=True)
       dfs[pipe.table.id] = passed
