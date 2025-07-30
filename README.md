@@ -90,12 +90,23 @@ There are two main aspects of a `Metastore`:
 
 This structure is inspired by `deltalake` and follows similar metastore paradigms. It loosely follows the modern [Medallion Architecture](https://www.databricks.com/glossary/medallion-architecture) language for organizing the data layers, with these naming conventions for each layer:
 
-1. *Raw*: Source data, usually a payload string.
-2. *Conformed*: Structured data.
-3. *Canonical*: Business-level data.
-4. *Export*: Cleaned, formatted export data.
+1. *Raw*: Source data as a payload string.
+2. *Conformed*: Source data already conformed to a schema.
+3. *Standard*: Non-source, static data.
+4. *Canonical*: Business-level data, built from *Raw*, *Conformed*, and/or *Standard* data.
+5. *Export*: Cleaned, formatted export data.
 
-If the data can be conformed easily, it may get loaded from the ingestion zone into _conformed_. Otherwise, it should get loaded into _raw_.
+The basic way to think about these layers is to think of three different data paths:
+
+1. *raw* -> *conformed* -> *canonical*
+2. *standard*
+3. *raw/conformed/standard/canonical* -> *export* 
+
+If you have complicated source data that will need to be unpacked, it should be brought into the *raw* or *canonical* layer and then cleaned into *canonical*.
+
+If you have a simple table, like a crosswalk, it should be brought into the *standard* layer.
+
+If you want to save data in different formats for external use, it should be exported via the *export* layer.
 
 ## Table
 
