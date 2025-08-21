@@ -36,8 +36,7 @@ class Exporter:
 
   def __post_init__(self) -> None:
     self.export_directory: str = self.export_directory or path.join(
-      self.table.metastore.volumes_directory,
-      'exports',
+      self.table.metastore.exports_directory,
       self.table.domain,
       self.table.quality.value,
       self.table.name

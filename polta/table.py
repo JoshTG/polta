@@ -79,14 +79,12 @@ class Table:
       self.name
     )
     self.ingestion_zone_path: str = path.join(
-      self.metastore.volumes_directory,
-      'ingestion',
+      self.metastore.ingestion_directory,
       self.domain,
       self.name
     )
     self.quarantine_path: str = path.join(
-      self.metastore.volumes_directory,
-      'quarantine',
+      self.metastore.quarantine_directory,
       self.domain,
       self.quality.value,
       self.name

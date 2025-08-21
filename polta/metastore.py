@@ -33,6 +33,9 @@ class Metastore:
   def __post_init__(self) -> None:
     self.tables_directory: str = path.join(self.main_path, 'tables')
     self.volumes_directory: str = path.join(self.main_path, 'volumes')
+    self.exports_directory: str = path.join(self.volumes_directory, 'exports')
+    self.quarantine_directory: str = path.join(self.volumes_directory, 'quarantine')
+    self.ingestion_directory: str = path.join(self.volumes_directory, 'ingestion')
     self.sys_directory: str = path.join(self.volumes_directory, 'system')
     self.file_history_path: str = path.join(self.sys_directory, 'file_history')
     self.pipe_history_path: str = path.join(self.sys_directory, 'pipe_history')
@@ -44,6 +47,9 @@ class Metastore:
     makedirs(self.main_path, exist_ok=True)
     makedirs(self.tables_directory, exist_ok=True)
     makedirs(self.volumes_directory, exist_ok=True)
+    makedirs(self.exports_directory, exist_ok=True)
+    makedirs(self.quarantine_directory, exist_ok=True)
+    makedirs(self.ingestion_directory, exist_ok=True)
 
     # Initialize the system tables
     self.create_table_if_not_exists(
