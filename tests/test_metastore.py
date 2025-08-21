@@ -68,7 +68,7 @@ class TestMetastore(TestCase):
   def test_list_domains(self) -> None:
     # Assert metastore can return the list of domains
     domains: list[str] = self.pm.list_domains()
-    assert domains == self.td.domains
+    assert sorted(domains) == sorted(self.td.domains)
   
   def test_list_qualities(self) -> None:
     # Assert metastore can return the list of qualities
