@@ -20,17 +20,22 @@ class Metastore:
     main_path (str): the directory of the metastore (default CWD + 'metastore')
 
   Initialized Fields:
+    name (str): the name of the metastore (i.e., the basename of main_path)
     tables_directory (str): the path to the tables
     volumes_directory (str): the path to the volumes
+    file_history_path (str): the absolute path to the file_history table
+    pipe_history_path (str): the absolute path to the pipe_history table
   """
   main_path: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
 
+  name: str = field(init=False)
   tables_directory: str = field(init=False)
   volumes_directory: str = field(init=False)
   file_history_path: str = field(init=False)
   pipe_history_path: str = field(init=False)
 
   def __post_init__(self) -> None:
+    self.name: str = path.basename(self.main_path)
     self.tables_directory: str = path.join(self.main_path, 'tables')
     self.volumes_directory: str = path.join(self.main_path, 'volumes')
     self.exports_directory: str = path.join(self.volumes_directory, 'exports')
