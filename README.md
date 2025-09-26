@@ -187,7 +187,7 @@ It currently supports exporting these formats:
 
 The `Pipeline` is the primary way to link `Pipes` together to create a unified data pipeline.
 
-It takes in a list of raw, conformed, canonical, and export `Pipes` and executes them sequentially.
+It takes in a list of raw, conformed, standard, canonical, and export `Pipes` and executes them sequentially.
 
 There are two kinds of pipelines you can build:
 
