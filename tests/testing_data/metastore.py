@@ -8,6 +8,7 @@ from sample.metastore import metastore_init
 
 class TestingData:
   """Contains test data for the metastore"""
+  metastore_name: str = 'test_metastore'
   domains: list[str] = ['in_memory', 'standard']
   qualities: list[TableQuality] = [
     TableQuality.CANONICAL,
