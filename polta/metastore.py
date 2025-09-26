@@ -15,22 +15,39 @@ from polta.schemas.system import file_history, pipe_history
 @dataclass
 class Metastore:
   """Dataclass for managing Polta metastores
+
+  The key concepts are below:
+    1. Domain: the high-level category of data
+    2. Quality: the various table qualities under a given domain
+  
+  There are two main directories in a metastore:
+    1. Tables: all of the table datasets for a metastore
+    2. Volumes: file storage containing system tables, ingestion zones, export files, etc.
+  
+  Below are the available system tables:
+    1. file_history: stores metadata about every file that has been ingested
+    2. pipe_history: stores metadata about every pipe execution
   
   Optional Args:
     main_path (str): the directory of the metastore (default CWD + 'metastore')
 
   Initialized Fields:
+    name (str): the name of the metastore (i.e., the basename of main_path)
     tables_directory (str): the path to the tables
     volumes_directory (str): the path to the volumes
+    file_history_path (str): the absolute path to the file_history table
+    pipe_history_path (str): the absolute path to the pipe_history table
   """
   main_path: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
 
+  name: str = field(init=False)
   tables_directory: str = field(init=False)
   volumes_directory: str = field(init=False)
   file_history_path: str = field(init=False)
   pipe_history_path: str = field(init=False)
 
   def __post_init__(self) -> None:
+    self.name: str = path.basename(self.main_path)
     self.tables_directory: str = path.join(self.main_path, 'tables')
     self.volumes_directory: str = path.join(self.main_path, 'volumes')
     self.exports_directory: str = path.join(self.volumes_directory, 'exports')

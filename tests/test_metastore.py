@@ -27,6 +27,9 @@ class TestMetastore(TestCase):
     assert path.exists(self.pm.tables_directory)
     assert path.exists(self.pm.volumes_directory)
 
+    # Assert proper metastore metadata
+    assert self.pm.name == self.td.metastore_name
+
     # Destory secondary metastore
     rmtree(self.pm_init.main_path)
     assert not path.exists(self.pm_init.main_path)
