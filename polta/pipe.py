@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 from polars import DataFrame
 from typing import Optional, Union
 
-from polta.enums import WriteLogic
+from polta.enums import RegisterObjectType, WriteLogic
 from polta.exceptions import (
   EmptyPipe,
   WriteLogicNotRecognized
@@ -40,6 +40,7 @@ class Pipe:
     ])
     self.table: Table = self.logic.table
     self.write_logic = self.logic.write_logic
+    self.table.metastore.register(RegisterObjectType.PIPE, self.id)
 
   def execute(self, dfs: dict[str, DataFrame] = {}, in_memory: bool = False,
               strict: bool = False) -> tuple[DataFrame, DataFrame, DataFrame]:

@@ -37,6 +37,12 @@ class PoltaDataFormatNotRecognized(Exception):
     self.message: str = f'Unrecognized instance type {format}'
     super().__init__(self.message)
 
+class RegisterObjectTypeNotImplemented(Exception):
+  """Raise when a register object type has not been implemented in the metastore"""
+  def __init__(self, object_type: Any) -> None:
+    self.message: str = f'Unrecognized register object type {object_type}'
+    super().__init__(self.message)
+
 class TableQualityNotRecognized(Exception):
   """Raise when the table quality is not recognized by system"""
   def __init__(self, quality: Any) -> None:

@@ -10,9 +10,10 @@ from typing import Optional
 from uuid import uuid4
 
 from polta.test import Test
-from polta.enums import CheckAction, TableQuality
+from polta.enums import CheckAction, RegisterObjectType, TableQuality
 from polta.exceptions import (
   PoltaDataFormatNotRecognized,
+  RegisterObjectTypeNotImplemented,
   TableQualityNotRecognized
 )
 from polta.metastore import Metastore
@@ -145,6 +146,22 @@ class Table:
       merge_predicate (str): the merge predicate as a conjunction of SQL conditions matching on primary keys
     """
     return ' AND '.join([f's.{k} = t.{k}' for k in primary_keys])
+
+  def register(self, object_type: RegisterObjectType, id: str) -> None:
+    """Registers an object to the metastore
+    
+    Args:
+      object_type (RegisterObjectType): the object type to register
+      id (str): the ID of the object
+    """
+    if object_type.value == RegisterObjectType.PIPE.value:
+      ...
+    elif object_type.value == RegisterObjectType.PIPELINE.value:
+      ...
+    elif object_type.value == RegisterObjectType.TABLE.value:
+      ...
+    else:
+      raise RegisterObjectTypeNotImplemented(object_type)
 
   def enforce_dataframe(self, data: RawPoltaData) -> DataFrame:
     """Takes either a DataFrame or record(s) and returns the DataFrame representation
