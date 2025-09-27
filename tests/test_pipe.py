@@ -1,21 +1,25 @@
 from os import path, remove
-from polars import DataFrame
+from polars import col, DataFrame
 from unittest import TestCase
 
 from polta.enums import RawFileType, TableQuality
 from polta.exceptions import (
-  EmptyPipe, 
+  EmptyPipe,
   TableQualityNotRecognized,
   WriteLogicNotRecognized
 )
-from sample.standard.raw.activity import \
-  pipe as pip_raw_activity
+from sample.standard.canonical.state import \
+  pipe as pip_can_state
 from sample.standard.canonical.user import \
   table as tab_can_user
 from sample.standard.conformed.activity import \
   pipe as pip_con_activity
+from sample.standard.conformed.state import \
+  pipe as pip_con_state
 from sample.standard.export.user import \
   pipe as pip_exp_user
+from sample.standard.raw.activity import \
+  pipe as pip_raw_activity
 from tests.testing_data.pipe import TestingData
 
 
@@ -54,8 +58,32 @@ class TestPipe(TestCase):
     assert quarantined.shape[0] == 0
   
   def test_upserter_pipe(self) -> None:
-    # Clean up dependent table first
-    ...
+    # Clean up dependent tables first
+    pip_con_state.table.truncate()
+    pip_can_state.table.truncate()
+
+    # Execute conformed pipe and assert it upserted correctly
+    passed, failed, quarantined = pip_con_state.execute()
+    assert passed.shape[0] == 3
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
+
+    # Execute canonical pipe and assert it upserted correctly
+    passed, failed, quarantined = pip_can_state.execute()
+    assert passed.shape[0] == 3
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
+    assert list(passed.filter(col('id') == 1).select('state').to_series()) == \
+      self.td.extra_upsert_initial_state
+
+    # Add additional row and assert it upserted correctly
+    pip_con_state.table.append(self.td.extra_upsert_df)
+    passed, failed, quarantined = pip_can_state.execute()
+    assert passed.shape[0] == 3
+    assert failed.shape[0] == 0
+    assert quarantined.shape[0] == 0
+    assert list(passed.filter(col('id') == 1).select('state').to_series()) == \
+      self.td.extra_upsert_final_state
 
   def test_exporter_pipe(self) -> None:
     # Pre-assertion cleanup
