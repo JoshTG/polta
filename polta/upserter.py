@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from polars import DataFrame
 from typing import Optional
 
-from polta.enums import TableQuality, PipeType
+from polta.enums import TableQuality, PipeType, WriteLogic
 from polta.exceptions import IncorrectQuality
 from polta.table import Table
 
@@ -22,12 +22,14 @@ class Upserter:
   table: Table
 
   pipe_type: PipeType = field(init=False)
+  write_logic: WriteLogic = field(init=False)
 
   def __post_init__(self) -> None:
     self.pipe_type: PipeType = PipeType.UPSERTER
+    self.write_logic: WriteLogic = WriteLogic.UPSERT
 
-    if self.source_table.quality.name not in [TableQuality.RAW.value, TableQuality.CONFORMED.value] \
-     or self.table.quality.name == TableQuality.CANONICAL.value:
+    if self.source_table.quality.value not in [TableQuality.RAW.value, TableQuality.CONFORMED.value] \
+     or self.table.quality.value != TableQuality.CANONICAL.value:
       raise IncorrectQuality()
     
   def get_dfs(self) -> dict[str, DataFrame]:
