@@ -28,12 +28,6 @@ class RawFileType(Enum):
   EXCEL = 'xlsx'
   JSON = 'json'
 
-class RegisterObjectType(Enum):
-  """Object type to register for the metastore"""
-  PIPE = 'pipe'
-  PIPELINE = 'pipeline'
-  TABLE = 'table'
-
 class TableQuality(Enum):
   """The quality of the Delta Table"""
   RAW = 'raw'
