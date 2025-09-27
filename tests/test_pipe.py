@@ -53,6 +53,10 @@ class TestPipe(TestCase):
     assert failed.shape[0] == 0
     assert quarantined.shape[0] == 0
   
+  def test_upserter_pipe(self) -> None:
+    # Clean up dependent table first
+    ...
+
   def test_exporter_pipe(self) -> None:
     # Pre-assertion cleanup
     pip_exp_user.logic.exported_files.clear()
