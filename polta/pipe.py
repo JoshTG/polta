@@ -12,6 +12,7 @@ from polta.exporter import Exporter
 from polta.ingester import Ingester
 from polta.table import Table
 from polta.transformer import Transformer
+from polta.upserter import Upserter
 
 
 @dataclass
@@ -81,7 +82,7 @@ class Pipe:
     succeeded: bool = (not strict) or (not passed.is_empty())
 
     # For standard runs and non-exports, save the passed data
-    if isinstance(self.logic, (Ingester, Transformer)) and not in_memory:
+    if isinstance(self.logic, (Ingester, Transformer, Upserter)) and not in_memory:
       self.save(passed)
     
     # For exports, export the data

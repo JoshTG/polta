@@ -31,6 +31,12 @@ class IncompatibleTransformLogic(Exception):
     self.message: str = f'Incompatible transform logic of type {type(transform_logic)}'
     super().__init__(self.message)
 
+class IncorrectQuality(Exception):
+  """Raise when an upserter has a table that is not of canonical quality"""
+  def __init__(self) -> None:
+    self.message: str = 'Source must be raw/conformed; target must be canonical'
+    super().__init__(self.message)
+
 class PoltaDataFormatNotRecognized(Exception):
   """Raise when the Polta data format is not recognized by system"""
   def __init__(self, format: type) -> None:
