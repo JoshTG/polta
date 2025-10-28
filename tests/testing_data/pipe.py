@@ -20,10 +20,7 @@ from polta.ingester import Ingester
 from polta.pipe import Pipe
 from polta.table import Table
 from polta.transformer import Transformer
-from polta.upserter import Upserter
 from sample.metastore import metastore
-from sample.standard.conformed.state import \
-  table as tab_con_state
 
 
 class TestingData:

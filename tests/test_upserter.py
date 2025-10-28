@@ -7,8 +7,6 @@ from sample.standard.canonical.state import \
   pipe as pip_can_state
 from sample.standard.conformed.activity import \
   table as tab_con_activity
-from sample.standard.conformed.state import \
-  pipe as pip_con_state
 from sample.standard.raw.activity import \
   table as tab_raw_activity
 from tests.testing_data.upserter import TestingData

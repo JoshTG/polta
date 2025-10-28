@@ -4,6 +4,7 @@ from typing import Any
 
 
 class TestingData:
+  """Contains test data for the Upserter pipe type"""
   dfs: dict[str, DataFrame] = {
     'state': DataFrame([
       {
