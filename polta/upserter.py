@@ -17,6 +17,7 @@ class Upserter:
     
   Initialized fields:
     pipe_type (PipeType): the type of pipe this is (i.e., UPSERTER)
+    write_logic (WriteLogic): the pipe type's write logic (i.e., UPSERT)
   """
   source_table: Table
   table: Table
