@@ -127,6 +127,23 @@ class TestingData:
     ],
     schema=apply_test_table.schema.polars
   )
+  extra_upsert_initial_state: list[str] = ['PA']
+  extra_upsert_final_state: list[str] = ['TX']
+  extra_upsert_df: DataFrame = DataFrame(
+    [
+      {
+        '_raw_id': '90efe12d-d6d6-4561-840e-9265b873a5d2',
+        '_conformed_id': 'df8aad71-fe13-4799-8cdd-ce72e6aed098',
+        '_conformed_ts': datetime.now(UTC),
+        '_ingested_ts': datetime.now(UTC),
+        '_file_path': 'path\\to\\state_2.csv',
+        '_file_name': 'state_2.csv',
+        '_file_mod_ts': datetime.now(UTC),
+        'id': 1,
+        'state': 'TX'
+      }
+    ]
+  )
   def apply_test_load_logic() -> dict[str, DataFrame]:
     return {}
   def apply_test_transform_logic(dfs: dict[str, DataFrame]) -> DataFrame:
