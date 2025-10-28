@@ -23,7 +23,10 @@ class TestTransformer(TestCase):
     # Ensure source table is empty
     tab_raw_activity.truncate()
 
+    # Retrieve the source DataFrame
     dfs: dict[str, DataFrame] = self.tr.get_dfs()
+
+    # Ensure dfs field is as expected
     assert isinstance(dfs, dict)
     assert list(dfs.keys()) == ['activity']
     assert isinstance(dfs['activity'], DataFrame)
