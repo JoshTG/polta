@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
-from polars import DataFrame
+from polars import col, DataFrame
 from typing import Optional, Union
 
-from polta.enums import WriteLogic
+from polta.enums import PipeType, WriteLogic
 from polta.exceptions import (
   EmptyPipe,
   WriteLogicNotRecognized
@@ -41,6 +41,7 @@ class Pipe:
     ])
     self.table: Table = self.logic.table
     self.write_logic = self.logic.write_logic
+    self.logic.pipe_id = self.id
 
   def execute(self, dfs: dict[str, DataFrame] = {}, in_memory: bool = False,
               strict: bool = False) -> tuple[DataFrame, DataFrame, DataFrame]:
@@ -105,6 +106,14 @@ class Pipe:
       failed_count=failed.shape[0],
       quarantined_count=quarantined.shape[0]
     )
+    # For upserters, add additional system data
+    if self.logic.pipe_type.value == PipeType.UPSERTER.value:
+      id_col: str = '_conformed_id' if '_conformed_id' in df.columns else '_raw_id'
+      upsert_df: DataFrame = dfs[self.table.name].join(passed, id_col, 'inner')
+      self.table.metastore.write_upsert_history(
+        pipe_id=self.id,
+        df=upsert_df
+      )
 
     # If the pipe failed, raise the EmptyPipe exception
     if not succeeded:

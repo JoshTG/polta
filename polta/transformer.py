@@ -28,9 +28,11 @@ class Transformer:
   transform_logic: Union[FunctionType, str]
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
 
+  pipe_id: str = field(init=False)
   pipe_type: PipeType = field(init=False)
 
   def __post_init__(self) -> None:
+    self.pipe_id: str = ''
     self.pipe_type: PipeType = PipeType.TRANSFORMER
 
   def get_dfs(self) -> dict[str, DataFrame]:

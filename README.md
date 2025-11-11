@@ -16,6 +16,7 @@ In the Python ecosystem broadly, the existing `polars` and `delta` packages make
 * Each `Pipe` takes data from one location, transforms it, and saves it into another location. It does so in one of three ways:
   * By ingesting source data via an `Ingester`.
   * By transforming data across layers via a `Transformer`.
+  * By upserting data from raw/conformed to canonical via an `Upserter`.
   * By exporting the data in a desired format via an `Exporter`.
 * The data are managed in `Tables`, which use `deltalake` and `polars` under the hood.
 * Each `Table` contains a `TableSchema` which wraps the polars and deltalake schemas depending on user need.
@@ -30,6 +31,7 @@ Throughout this README and in the repository's `sample` pipelines, various objec
 | `Exporter`    | exp_<quality-prefix\>_<table-name\> | exp_can_user       | 
 | `Ingester`    | ing_<quality-prefix\>_<table-name\> | ing_raw_activity   |
 | `Transformer` | tra_<quality-prefix\>_<table-name\> | tra_con_user       |
+| `Upserter`    | ups_<quality-prefix\>_<table-name\> | ups_can_state      |
 | `Pipe`        | pip_<quality-prefix\>_<table-name\> | pip_std_category   |
 | `Pipeline`    | ppl_<domain\>_<table-name\>         | ppl_standard_user  |
 
@@ -174,6 +176,31 @@ transform: str = '''
   ON n.id = a.id
 '''
 ```
+
+### Upserter
+
+The `Upserter` takes data from the raw or conformed layers and upserts (i.e., update + insert) that data into the canonical layer.
+
+The instantiation of the objet looks like this:
+
+```py
+from polta.pipe import Pipe
+from polta.upserter import Upserter
+
+from .conformed.state import table as tab_con_state
+from .canonical.state import table as tab_can_state
+
+
+upserter: Upserter = Upserter(
+  source_table=tab_con_state,
+  table=tab_can_state
+)
+
+pipe: Pipe = Pipe(upserter)
+```
+
+
+
 
 ### Exporter
 

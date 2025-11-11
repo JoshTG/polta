@@ -30,6 +30,7 @@ class Exporter:
   export_format: ExportFormat
   export_directory: str = field(default_factory=lambda: '')
 
+  pipe_id: str = field(init=False)
   pipe_type: PipeType = field(init=False)
   write_logic: Optional[WriteLogic] = field(init=False)
   exported_files: list[str] = field(init=False)
@@ -42,6 +43,7 @@ class Exporter:
       self.table.name
     )
     makedirs(self.export_directory, exist_ok=True)
+    self.pipe_id: str = ''
     self.pipe_type: PipeType = PipeType.EXPORTER
     self.write_logic = None
     self.exported_files: list[str] = []

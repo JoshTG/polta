@@ -21,3 +21,10 @@ pipe_history: Schema = Schema([
   Field('failed_count', 'long'),
   Field('quarantined_count', 'long')
 ])
+
+upsert_history: Schema = Schema([
+  Field('pipe_id', 'string'),
+  Field('_file_path', 'string'),
+  Field('_file_mod_ts', 'timestamp'),
+  Field('_source_id', 'string')
+])

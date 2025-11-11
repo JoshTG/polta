@@ -9,7 +9,7 @@ from typing import Any
 
 from polta.enums import TableQuality
 from polta.exceptions import DomainDoesNotExist
-from polta.schemas.system import file_history, pipe_history
+from polta.schemas.system import file_history, pipe_history, upsert_history
 
 
 @dataclass
@@ -37,6 +37,7 @@ class Metastore:
     volumes_directory (str): the path to the volumes
     file_history_path (str): the absolute path to the file_history table
     pipe_history_path (str): the absolute path to the pipe_history table
+    upsert_history_path (str): the absolute path to the upsert_history table
   """
   main_path: str = field(default_factory=lambda: path.join(getcwd(), 'metastore'))
 
@@ -56,6 +57,7 @@ class Metastore:
     self.sys_directory: str = path.join(self.volumes_directory, 'system')
     self.file_history_path: str = path.join(self.sys_directory, 'file_history')
     self.pipe_history_path: str = path.join(self.sys_directory, 'pipe_history')
+    self.upsert_history_path: str = path.join(self.sys_directory, 'upsert_history')
     self.initialize_if_not_exists()
 
   def initialize_if_not_exists(self) -> None:
@@ -77,6 +79,11 @@ class Metastore:
     self.create_table_if_not_exists(
       table_path=self.pipe_history_path,
       schema=pipe_history,
+      partition_by=['pipe_id']
+    )
+    self.create_table_if_not_exists(
+      table_path=self.upsert_history_path,
+      schema=upsert_history,
       partition_by=['pipe_id']
     )
 
@@ -205,6 +212,20 @@ class Metastore:
     """
     DeltaTable(self.file_history_path).delete(f'table_id = \'{table_id}\'')
 
+  def get_pipe_history(self, pipe_id: str = '') -> DataFrame:
+    """Retrieves the pipe_history system table
+    
+    Args:
+      pipe_id (str): if applicable, the unique ID of the pipe
+    
+    Returns:
+      df (DataFrame): the pipe_history DataFrame
+    """
+    df: DataFrame = pl.read_delta(self.pipe_history_path)
+    if pipe_id:
+      df: DataFrame = df.filter(pl.col('pipe_id').eq(pipe_id))
+    return df
+
   def write_pipe_history(self, pipe_id: str, execution_start_ts: datetime, strict: bool,
                          succeeded: bool, in_memory: bool, passed_count: int,
                          failed_count: int, quarantined_count: int) -> None:
@@ -239,16 +260,45 @@ class Metastore:
       mode='append'
     )
 
-  def get_pipe_history(self, pipe_id: str = '') -> DataFrame:
-    """Retrieves the pipe_history system table
+  def get_upsert_history(self, pipe_id: str = '') -> DataFrame:
+    """Retrieves the upsert_history system table
     
     Args:
       pipe_id (str): if applicable, the unique ID of the pipe
     
     Returns:
-      df (DataFrame): the pipe_history DataFrame
+      df (DataFrame): the upsert_history DataFrame
     """
-    df: DataFrame = pl.read_delta(self.pipe_history_path)
+    df: DataFrame = pl.read_delta(self.upsert_history_path)
     if pipe_id:
       df: DataFrame = df.filter(pl.col('pipe_id').eq(pipe_id))
     return df
+
+  def write_upsert_history(self, pipe_id: str, df: DataFrame) -> None:
+    """Writes the upsert history into the system table
+
+    Args:
+      pipe_id (str): the unique ID of the pipe
+      df (DataFrame): the records to write
+    """
+    id_col: str = '_conformed_id' if '_conformed_id' in df.columns else '_raw_id'
+    df: DataFrame = (df
+      .select(
+        pl.lit(pipe_id).alias('pipe_id'),
+        pl.col('_file_path'),
+        pl.col('_file_mod_ts'),
+        pl.col(id_col).alias('_source_id')
+      )
+    )
+    df.write_delta(
+      target=self.upsert_history_path,
+      mode='append'
+    )
+
+  def clear_upsert_history(self, pipe_id: str) -> None:
+    """Removes the upsert history of a pipe, typically after truncating a table
+    
+    Args:
+      pipe_id (str): the unique ID of the pipe
+    """
+    DeltaTable(self.upsert_history_path).delete(f'pipe_id = \'{pipe_id}\'')

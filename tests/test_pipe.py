@@ -59,6 +59,7 @@ class TestPipe(TestCase):
   
   def test_upserter_pipe(self) -> None:
     # Clean up dependent tables first
+    pip_can_state.table.metastore.clear_upsert_history(pip_can_state.id)
     pip_con_state.table.truncate()
     pip_can_state.table.truncate()
 
@@ -79,7 +80,7 @@ class TestPipe(TestCase):
     # Add additional row and assert it upserted correctly
     pip_con_state.table.append(self.td.extra_upsert_df)
     passed, failed, quarantined = pip_can_state.execute()
-    assert passed.shape[0] == 3
+    assert passed.shape[0] == 1
     assert failed.shape[0] == 0
     assert quarantined.shape[0] == 0
     assert list(passed.filter(col('id') == 1).select('state').to_series()) == \
