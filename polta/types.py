@@ -1,10 +1,11 @@
 from datetime import datetime
-from polars import DataFrame
+from polars import DataFrame, LazyFrame
 from typing import Literal, TypeAlias, TypedDict, Union
 
 
 ExcelSpreadsheetEngine: TypeAlias = Literal['calamine', 'openpyxl', 'xlsx2csv']
-RawPoltaData: TypeAlias = Union[DataFrame, dict, list[dict]]
+RawPoltaData: TypeAlias = Union[DataFrame, LazyFrame, dict, list[dict]]
+Frame: TypeAlias = Union[DataFrame, LazyFrame]
 
 class RawMetadata(TypedDict):
   """TypedDict to contain raw metadata for an ingest pipe"""

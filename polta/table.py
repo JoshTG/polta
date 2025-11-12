@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, UTC
 from deltalake import DeltaTable, Schema, TableFeatures
 from os import makedirs, path
-from polars import DataFrame
+from polars import DataFrame, LazyFrame
 from shutil import rmtree
 from typing import Optional
 from uuid import uuid4
@@ -17,7 +17,7 @@ from polta.exceptions import (
 )
 from polta.metastore import Metastore
 from polta.table_schema import TableSchema
-from polta.types import RawPoltaData
+from polta.types import Frame, RawPoltaData
 
 
 @dataclass
@@ -146,8 +146,28 @@ class Table:
     """
     return ' AND '.join([f's.{k} = t.{k}' for k in primary_keys])
 
+  def enforce_lazyframe(self, data: RawPoltaData) -> LazyFrame:
+    """Takes a DataFrame, LazyFrame, or record(s) and returns the LazyFrame representation
+
+    Args:
+      data (RawPoltaData): the data to enforce
+    
+    Returns:
+      lf (LazyFrame): the LazyFrame representation
+    """
+    if isinstance(data, dict):
+      return LazyFrame([data], self.schema.polars)
+    elif isinstance(data, list) and all(isinstance(r, dict) for r in data):
+      return LazyFrame(data, self.schema.polars)
+    elif isinstance(data, DataFrame):
+      return data.lazy()
+    elif isinstance(data, LazyFrame):
+      return data
+    else:
+      raise PoltaDataFormatNotRecognized(type(data))
+
   def enforce_dataframe(self, data: RawPoltaData) -> DataFrame:
-    """Takes either a DataFrame or record(s) and returns the DataFrame representation
+    """Takes a DataFrame, Lazyframe, or record(s) and returns the DataFrame representation
     
     Args:
       data (RawPoltaData): the data to enforce
@@ -161,6 +181,8 @@ class Table:
       return DataFrame(data, self.schema.polars)
     elif isinstance(data, DataFrame):
       return data
+    elif isinstance(data, LazyFrame):
+      return data.collect()
     else:
       raise PoltaDataFormatNotRecognized(type(data))
 
@@ -232,7 +254,7 @@ class Table:
 
   def get(self, filter_conditions: dict = {}, partition_by: list[str] = [], order_by: list[str] = [],
           order_by_descending: bool = True, select: list[str] = [], sort_by: list[str] = [], limit: int = 0,
-          unique: bool = False) -> DataFrame:
+          unique: bool = False, lazy: bool = False) -> Frame:
     """Retrieves a record, or records, by a specific condition, expecting only one record to return
       
     Args:
@@ -244,9 +266,10 @@ class Table:
       sort_by (optional) (list[str]): if applicable, the columns by which to sort the output
       limit (optional) (int): if applicable, a limit to the number of rows to return
       unique (optional) (bool): if applicable, remove any duplicate records
+      lazy (optional) (bool): if applicable, return a LazyFrame
 
     Returns:
-      df (DataFrame): the resulting DataFrame
+      df (Frame): the resulting DataFrame/LazyFrame
     """
     if not isinstance(filter_conditions, dict):
       raise TypeError('Error: filter_conditions must be of type <dict>')
@@ -264,6 +287,8 @@ class Table:
       raise TypeError('Error: limit must be of type <int>')
     if not isinstance(unique, bool):
       raise TypeError('Error: unique must be of type <bool>')
+    if not isinstance(lazy, bool):
+      raise TypeError('Error: lazy must be of type <bool>')
     if not all(isinstance(c, str) for c in partition_by):
       raise TypeError('Error: all values in partition_by must be of type <str>')
     if not all(isinstance(c, str) for c in order_by):
@@ -276,33 +301,33 @@ class Table:
     self.create_if_not_exists(self.table_path, self.schema.deltalake, self.partition_keys)
 
     # Retrieve Delta Table as a Polars DataFrame
-    df: DataFrame = pl.read_delta(self.table_path)
+    df: Frame = pl.scan_delta(self.table_path) if lazy else pl.read_delta(self.table_path)
 
     # Apply the filter condition if applicable
     if filter_conditions:
-      df: DataFrame = df.filter(**filter_conditions)
+      df: Frame = df.filter(**filter_conditions)
 
     # Filter columns if applicable
     if select:
-      df: DataFrame = df.select(select)
+      df: Frame = df.select(select)
 
     # Apply a simple deduplication if applicable        
     if partition_by and order_by:
-      df: DataFrame = df \
+      df: Frame = df \
         .sort(order_by, descending=order_by_descending) \
         .unique(subset=partition_by, keep='first')
     
     # Apply a limit if applicable
     if limit:
-      df: DataFrame = df.limit(limit)
+      df: Frame = df.limit(limit)
     
     # Remove duplicate records if applicable
     if unique:
-      df: DataFrame = df.unique()
+      df: Frame = df.unique()
       
     # Sort the results if applicable
     if sort_by:
-      df: DataFrame = df.sort(sort_by)
+      df: Frame = df.sort(sort_by)
 
     return df
 

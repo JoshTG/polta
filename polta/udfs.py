@@ -31,5 +31,6 @@ def string_to_struct(value: str) -> dict[str, Any]:
     value (str): the value to convert
   
   Returns:
-    struct (dict[str, Any]): the resulting struct"""
+    struct (dict[str, Any]): the resulting struct
+  """
   return loads(value)

@@ -1,6 +1,6 @@
 from deltalake import DeltaTable, Field, Schema
 from os import path
-from polars import DataFrame, read_delta
+from polars import DataFrame, LazyFrame, read_delta
 from shutil import rmtree
 from typing import Any
 from unittest import TestCase
@@ -96,6 +96,9 @@ class TestTable(TestCase):
     with self.assertRaises(TypeError) as te:
       self.td.table.get(unique=4)
     self.assertEqual(te.exception.args[0], self.td.unique_msg)
+    # Check lazy validation
+    with self.assertRaises(TypeError) as te:
+      self.td.table.get(lazy=4)
     # Check partition_by item validation
     with self.assertRaises(TypeError) as te:
       self.td.table.get(partition_by=['id', 4])
@@ -132,6 +135,10 @@ class TestTable(TestCase):
     df: DataFrame = self.td.table.get(sort_by=['id'])
     assert isinstance(df, DataFrame)
 
+    # Assert lazy feature works
+    lf: LazyFrame = self.td.table.get(lazy=True)
+    assert isinstance(lf, LazyFrame)
+
   def test_enforce_dataframe(self) -> None:
     # Assert bad data fails
     self.assertRaises(PoltaDataFormatNotRecognized, self.td.table.enforce_dataframe, 4)
@@ -142,6 +149,9 @@ class TestTable(TestCase):
     assert df.shape[0] == 1
     assert df.to_dicts()[0] == self.td.input_dataset_1[0]
 
+    # Assert LazyFrame input gives DataFrame
+    assert isinstance(self.td.table.enforce_dataframe(df.lazy()), DataFrame)
+
     # Assert list of dict objects works
     df: DataFrame = self.td.table.enforce_dataframe(self.td.input_dataset_1)
     assert isinstance(df, DataFrame)
@@ -150,6 +160,32 @@ class TestTable(TestCase):
     # Assert DataFrame works
     df: DataFrame = self.td.table.enforce_dataframe(self.empty_df)
     assert isinstance(df, DataFrame)
+    assert df.is_empty()
+
+  def test_enforce_lazyframe(self) -> None:
+    # Assert bad data fails
+    self.assertRaises(PoltaDataFormatNotRecognized, self.td.table.enforce_lazyframe, 4)
+
+    # Assert dict object works
+    lf: LazyFrame = self.td.table.enforce_lazyframe(self.td.input_dataset_1[0])
+    assert isinstance(lf, LazyFrame)
+    df: DataFrame = lf.collect()
+    assert df.shape[0] == 1
+    assert df.to_dicts()[0] == self.td.input_dataset_1[0]
+
+    # Assert LazyFrame input gives LazyFrame output
+    assert isinstance(self.td.table.enforce_lazyframe(lf), LazyFrame)
+
+    # Assert list of dict objects works
+    lf: LazyFrame = self.td.table.enforce_lazyframe(self.td.input_dataset_1)
+    assert isinstance(lf, LazyFrame)
+    df: DataFrame = lf.collect()
+    assert df.shape[0] == self.td.output_dataset_1_len
+
+    # Assert DataFrame works
+    lf: LazyFrame = self.td.table.enforce_lazyframe(self.empty_df)
+    assert isinstance(lf, LazyFrame)
+    df: DataFrame = lf.collect()
     assert df.is_empty()
 
   def test_ingestion_zone_directory(self) -> None:
