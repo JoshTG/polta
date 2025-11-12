@@ -30,7 +30,8 @@ class Table:
     
   Optional Args:
     quality (TableQuality): the quality of the data (default STANDARD)
-    raw_schema (Optional[Schema]): the raw table schema (default None)
+    raw_schema (Schema): the raw table schema (default None)
+    ingestion_zone_path (str): the path to the ingestion zone (default metastore ingestion volume)
     metastore (Metastore): The metastore (default Metastore())
     primary_keys (list[str]): for upserts, the primary keys of the table (default [])
     partition_keys (list[str]): the keys by which to partition the table (default [])
@@ -40,7 +41,6 @@ class Table:
     id (str): the unique identifier for the table
     schema (TableSchema): the table schema object
     table_path (str): the absolute path to the Table in the metastore
-    ingestion_zone_path (str): the path to the ingestion zone
     schema.polars (dict[str, DataType]): the table schema as a Polars object
     schema.deltalake (Schema): the table schema as a deltalake object
     columns (list[str]): the table columns
@@ -53,6 +53,7 @@ class Table:
   name: str
   quality: TableQuality = field(default_factory=lambda: TableQuality.STANDARD)
   raw_schema: Optional[Schema] = field(default_factory=lambda: None)
+  ingestion_zone_path: str = field(default_factory=lambda: '')
   metastore: Metastore = field(default_factory=lambda: Metastore())
   primary_keys: list[str] = field(default_factory=lambda: [])
   partition_keys: list[str] = field(default_factory=lambda: [])
@@ -61,7 +62,6 @@ class Table:
   id: str = field(init=False)
   schema: TableSchema = field(init=False)
   table_path: str = field(init=False)
-  ingestion_zone_path: str = field(init=False)
   quarantine_path: str = field(init=False)
   merge_predicate: Optional[str] = field(init=False)
 
@@ -78,7 +78,7 @@ class Table:
       self.quality.value,
       self.name
     )
-    self.ingestion_zone_path: str = path.join(
+    self.ingestion_zone_path: str = self.ingestion_zone_path or path.join(
       self.metastore.ingestion_directory,
       self.domain,
       self.name
