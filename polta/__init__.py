@@ -15,7 +15,6 @@ from .table_schema import TableSchema
 from .table import Table
 from .test import Test
 from .transformer import Transformer
-from .upserter import Upserter
 
 
 __all__ = [
@@ -34,8 +33,7 @@ __all__ = [
   'Test',
   'Transformer',
   'types',
-  'udfs',
-  'Upserter'
+  'udfs'
 ]
 __author__ = 'JoshTG'
 __license__ = 'MIT'
