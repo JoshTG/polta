@@ -21,7 +21,6 @@ class PipeType(Enum):
   EXPORTER = 'exporter'
   INGESTER = 'ingester'
   TRANSFORMER = 'transformer'
-  UPSERTER = 'upserter'
 
 class RawFileType(Enum):
   """Format of raw files"""
