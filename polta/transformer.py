@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from polars import DataFrame, SQLContext
 from types import FunctionType
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from polta.enums import PipeType, WriteLogic
 from polta.exceptions import IncompatibleTransformLogic
@@ -19,6 +19,7 @@ class Transformer:
   
   Optional Args:
     write_logic (WriteLogic): how to write to a Table (default APPEND)
+    params (Dict[str, Any]): any optional parameters for the logic execution
   
   Initialized fields:
     pipe_type (PipeType): the type of pipe this is (i.e., TRANSFORMER)
@@ -27,6 +28,7 @@ class Transformer:
   load_logic: FunctionType
   transform_logic: Union[FunctionType, str]
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
+  params: dict[str, Any] = field(default_factory=lambda: {})
 
   pipe_type: PipeType = field(init=False)
 

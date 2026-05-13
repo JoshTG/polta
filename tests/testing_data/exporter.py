@@ -1,6 +1,7 @@
+from typing import Any
+
 from polta.exporter import Exporter
 from polta.pipe import Pipe
-
 from polta.enums import DirectoryType
 from sample.standard.conformed.profit import ingester
 from sample.standard.export.profit import exporter
@@ -17,3 +18,6 @@ class TestingData:
     export_format=DirectoryType.SHALLOW
   )
   malformed_pipe: Pipe = Pipe(malformed_exporter)
+  params: dict[str, Any] = {
+    'is_path_a': True
+  }

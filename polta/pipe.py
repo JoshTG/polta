@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, UTC
 from polars import DataFrame
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from polta.enums import WriteLogic
 from polta.exceptions import (
@@ -42,13 +42,14 @@ class Pipe:
     self.write_logic = self.logic.write_logic
 
   def execute(self, dfs: dict[str, DataFrame] = {}, in_memory: bool = False,
-              strict: bool = False) -> tuple[DataFrame, DataFrame, DataFrame]:
+              strict: bool = False, params: dict[str, Any] = {}) -> tuple[DataFrame, DataFrame, DataFrame]:
     """Executes the pipe
 
     Args:
       dfs (dict[str, DataFrame]): if applicable, source DataFrames (default {})
       in_memory (bool): indicates whether to run without saving (default False)
       strict (bool): indicates whether to fail on empty result (default False)
+      params (dict[str, Any]): any optional parameters for pipe execution
 
     Returns:
       passed, failed, quarantined (tuple[DataFrame, DataFrame, DataFrame]): the resulting DataFrames
@@ -57,6 +58,9 @@ class Pipe:
     
     # Record when the execution began
     execution_start: datetime = datetime.now(UTC)
+
+    # Inject pipe params to logic
+    self.logic.params.update(params)
 
     # Load in any extra data before transformation
     dfs.update(self.logic.get_dfs())

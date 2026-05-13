@@ -6,7 +6,7 @@ from deltalake import Schema
 from os import listdir, path
 from polars import DataFrame
 from polars.datatypes import DataType, List, String, Struct
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from polta.enums import DirectoryType, PipeType, RawFileType, WriteLogic
@@ -29,6 +29,7 @@ class Ingester:
   
   Optional Args:
     write_logic (WriteLogic): how to save the data (default APPEND)
+    params (dict[str, Any]): any optional parameters for the logic execution
   
   Initialized Fields:
     pipe_type (PipeType): what kind of pipe this is (i.e., INGESTER)
@@ -39,6 +40,7 @@ class Ingester:
   directory_type: DirectoryType
   raw_file_type: RawFileType
   write_logic: WriteLogic = field(default_factory=lambda: WriteLogic.APPEND)
+  params: dict[str, Any] = field(default_factory=lambda: {})
 
   pipe_type: PipeType = field(init=False)
   simple_payload: bool = field(init=False)

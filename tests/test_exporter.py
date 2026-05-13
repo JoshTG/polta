@@ -58,3 +58,23 @@ class TestExporter(TestCase):
       self.td.malformed_exporter.export,
       self.td.exporter.table.get()
     )
+
+  def test_params(self) -> None:
+    # Pre-assertion setup
+    self.td.conformed_pipe.execute(self.td.params)
+
+    # Ensure the params save to the logic correctly
+    assert self.td.conformed_pipe.logic.params == self.td.params
+
+    # Retrieve dfs as a dependent
+    dfs: dict[str, DataFrame] = self.td.exporter.get_dfs()
+
+    # Execute transform() method
+    df: DataFrame = self.td.exporter.transform(dfs)
+
+    # Assert output is as expected
+    assert isinstance(df, DataFrame)
+
+    # Post-assertion cleanup
+    self.td.conformed_pipe.table.truncate()
+  

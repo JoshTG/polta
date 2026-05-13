@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 from json import dumps
 from os import makedirs, path
 from polars import DataFrame
-from typing import Optional
+from typing import Any, Optional
 
 from polta.enums import ExportFormat, PipeType, WriteLogic
 from polta.serializers import json
@@ -20,6 +20,7 @@ class Exporter:
   
   Optional Args:
     export_directory (str): where to save the data (default export volume)
+    params (dict[str, Any]): any optional parameters for the logic execution
 
   Initialized Fields:
     pipe_type (PipeType): what kind of pipe this is (i.e., EXPORTER)
@@ -29,6 +30,7 @@ class Exporter:
   table: Table
   export_format: ExportFormat
   export_directory: str = field(default_factory=lambda: '')
+  params: dict[str, Any] = field(default_factory=lambda: {})
 
   pipe_type: PipeType = field(init=False)
   write_logic: Optional[WriteLogic] = field(init=False)
